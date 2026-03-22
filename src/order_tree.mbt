@@ -76,8 +76,8 @@ pub fn[T : @rle.Spanning] OrderTree::find(
 }
 
 ///|
-/// Replace the item at the given span position.
-/// Returns the old item, or None if the position is out of bounds.
+/// Replace the item at the given span position (same-span only).
+/// Returns the old item, or None if out of bounds or span mismatch.
 pub fn[T : @rle.Spanning] OrderTree::set_at(
   self : OrderTree[T],
   pos : Int,

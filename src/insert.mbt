@@ -182,12 +182,13 @@ fn[T : @rle.Spanning] insert_into_internal(
 
 ///|
 /// Insert an item at the given position in the tree.
-/// Position is clamped to [0, span()].
+/// Position is clamped to [0, span()]. Item must have span > 0.
 pub fn[T : @rle.Spanning] OrderTree::insert_at(
   self : OrderTree[T],
   pos : Int,
   item : T,
 ) -> Unit {
+  guard @rle.Spanning::span(item) > 0 else { return }
   let clamped_pos = if pos < 0 {
     0
   } else if pos > self.span() {

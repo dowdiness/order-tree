@@ -10,12 +10,10 @@ fn[T : @rle.Spanning] OrderNode::set_in_node(
     Leaf(items~, ..) =>
       items[:].find_by_span(pos, fn(i, _offset) {
         let old = items[i]
-        let s = @rle.Spanning::span(old)
-        let new_span = @rle.Spanning::span(new_item)
-        if new_span != s {
-          abort(
-            "set_in_node: span change not supported (old=\{s}, new=\{new_span})",
-          )
+        // Span-changing replacement not supported in Phase 1a.
+        // Returns None instead of corrupting tree totals.
+        if @rle.Spanning::span(new_item) != @rle.Spanning::span(old) {
+          return None
         }
         items[i] = new_item
         Some(old)
