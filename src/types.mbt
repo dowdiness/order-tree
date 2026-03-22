@@ -11,11 +11,7 @@ pub struct FindResult[T] {
 /// Internal nodes store children with per-child span counts.
 pub(all) enum OrderNode[T] {
   Leaf(items~ : Array[T], total~ : Int)
-  Internal(
-    children~ : Array[OrderNode[T]],
-    counts~ : Array[Int],
-    total~ : Int,
-  )
+  Internal(children~ : Array[OrderNode[T]], counts~ : Array[Int], total~ : Int)
 } derive(Show, Eq)
 
 ///|

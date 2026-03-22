@@ -1,0 +1,11 @@
+import {
+  "dowdiness/rle" @rle,
+}
+
+import {
+  "moonbitlang/core/bench",
+  "moonbitlang/core/quickcheck",
+  "moonbitlang/quickcheck" @qc,
+} for "test"
+
+warnings = "-15-2-29"

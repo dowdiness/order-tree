@@ -1,5 +1,7 @@
 ///|
-pub fn[T] OrderTree::new(min_degree? : Int = default_min_degree) -> OrderTree[T] {
+pub fn[T] OrderTree::new(
+  min_degree? : Int = default_min_degree,
+) -> OrderTree[T] {
   { root: None, min_degree, size: 0 }
 }
 
@@ -23,7 +25,10 @@ pub fn[T] OrderTree::size(self : OrderTree[T]) -> Int {
 }
 
 ///|
-pub fn[T : @rle.Spanning] OrderTree::get_at(self : OrderTree[T], pos : Int) -> T? {
+pub fn[T : @rle.Spanning] OrderTree::get_at(
+  self : OrderTree[T],
+  pos : Int,
+) -> T? {
   match self.root {
     None => None
     Some(node) =>
