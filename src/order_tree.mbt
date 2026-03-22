@@ -42,6 +42,8 @@ pub impl[T] @rle.Spanning for OrderTree[T] with logical_length(self) -> Int {
 }
 
 ///|
+/// Get the item at span position. Aliased as `tree[pos]`.
+#alias("_[_]")
 pub fn[T : @rle.Spanning] OrderTree::get_at(
   self : OrderTree[T],
   pos : Int,
@@ -79,6 +81,16 @@ pub fn[T : @rle.Spanning] OrderTree::set_at(
     None => None
     Some(node) => node.set_in_node(pos, item)
   }
+}
+
+///|
+/// Index setter: `tree[pos] = item`. Discards the old value.
+pub fn[T : @rle.Spanning] OrderTree::op_set(
+  self : OrderTree[T],
+  pos : Int,
+  item : T,
+) -> Unit {
+  ignore(self.set_at(pos, item))
 }
 
 ///|

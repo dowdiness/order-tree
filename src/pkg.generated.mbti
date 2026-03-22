@@ -34,11 +34,13 @@ pub fn[T : @rle.Spanning] OrderTree::delete_range(Self[T], Int, Int) -> Unit
 pub fn[T] OrderTree::each(Self[T], (T) -> Unit) -> Unit
 pub fn[T : @rle.Spanning] OrderTree::find(Self[T], Int) -> FindResult[T]?
 pub fn[T : @rle.Spanning] OrderTree::from_array(Array[T], min_degree? : Int) -> Self[T]
+#alias("_[_]")
 pub fn[T : @rle.Spanning] OrderTree::get_at(Self[T], Int) -> T?
 pub fn[T : @rle.Spanning] OrderTree::insert_at(Self[T], Int, T) -> Unit
 pub fn[T] OrderTree::is_empty(Self[T]) -> Bool
 pub fn[T] OrderTree::iter(Self[T]) -> Iter[T]
 pub fn[T] OrderTree::new(min_degree? : Int) -> Self[T]
+pub fn[T : @rle.Spanning] OrderTree::op_set(Self[T], Int, T) -> Unit
 pub fn[T : @rle.Spanning] OrderTree::set_at(Self[T], Int, T) -> T?
 pub fn[T] OrderTree::size(Self[T]) -> Int
 pub fn[T] OrderTree::to_array(Self[T]) -> Array[T]

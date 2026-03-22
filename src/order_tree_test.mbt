@@ -364,3 +364,19 @@ test "rle trait: HasLength and Spanning" {
   // Method call syntax also works
   inspect(tree.span(), content="5")
 }
+
+///|
+test "index syntax: tree[pos] and tree[pos] = item" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  // Getter: tree[pos]
+  inspect(tree[0].map(fn(t) { t.value }), content="Some(0)")
+  inspect(tree[4].map(fn(t) { t.value }), content="Some(4)")
+  inspect(tree[10], content="None")
+  // Setter: tree[pos] = item
+  tree[2] = ti(99)
+  inspect(tree[2].map(fn(t) { t.value }), content="Some(99)")
+  inspect(tree.span(), content="5")
+}
