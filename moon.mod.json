@@ -1,0 +1,13 @@
+{
+  "name": "dowdiness/order-tree",
+  "version": "0.1.0",
+  "source": "src",
+  "deps": {
+    "dowdiness/rle": { "path": "../rle" },
+    "moonbitlang/quickcheck": "0.9.9"
+  },
+  "readme": "README.md",
+  "license": "Apache-2.0",
+  "keywords": ["btree", "order-statistic", "data-structure"],
+  "description": "Order-statistic B-tree with O(log n) position-indexed operations"
+}
