@@ -103,6 +103,12 @@ fn[T : @rle.Spanning] check_totals(node : OrderNode[T]) -> String? {
       None
     }
     Internal(children~, counts~, total~) => {
+      // Check counts array length matches children array length
+      if counts.length() != children.length() {
+        return Some(
+          "counts.length()=\{counts.length()} != children.length()=\{children.length()}",
+        )
+      }
       // Check counts[i] == node_total(children[i])
       for i = 0; i < children.length(); i = i + 1 {
         let ct = node_total(children[i])
