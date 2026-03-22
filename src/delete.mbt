@@ -114,39 +114,30 @@ fn[T : @rle.Spanning] merge_children(
   let left = children[idx]
   let right = children[idx + 1]
   let merged = match (left, right) {
-    (Leaf(items=left_items, ..), Leaf(items=right_items, ..)) => {
-      let new_items : Array[T] = Array::new(
-        capacity=left_items.length() + right_items.length(),
-      )
-      for i = 0; i < left_items.length(); i = i + 1 {
-        new_items.push(left_items[i])
-      }
+    (
+      Leaf(items=left_items, total=left_total),
+      Leaf(items=right_items, total=right_total),
+    ) => {
+      // Append right items to left (reuse left array)
       for i = 0; i < right_items.length(); i = i + 1 {
-        new_items.push(right_items[i])
+        left_items.push(right_items[i])
       }
-      let new_total = new_items.total_span()
-      OrderNode::Leaf(items=new_items, total=new_total)
+      OrderNode::Leaf(items=left_items, total=left_total + right_total)
     }
     (
-      Internal(children=left_ch, counts=left_cn, ..),
-      Internal(children=right_ch, counts=right_cn, ..),
+      Internal(children=left_ch, counts=left_cn, total=left_total),
+      Internal(children=right_ch, counts=right_cn, total=right_total),
     ) => {
-      let new_ch : Array[OrderNode[T]] = Array::new(
-        capacity=left_ch.length() + right_ch.length(),
-      )
-      let new_cn : Array[Int] = Array::new(
-        capacity=left_cn.length() + right_cn.length(),
-      )
-      for i = 0; i < left_ch.length(); i = i + 1 {
-        new_ch.push(left_ch[i])
-        new_cn.push(left_cn[i])
-      }
+      // Append right children/counts to left (reuse left arrays)
       for i = 0; i < right_ch.length(); i = i + 1 {
-        new_ch.push(right_ch[i])
-        new_cn.push(right_cn[i])
+        left_ch.push(right_ch[i])
+        left_cn.push(right_cn[i])
       }
-      let new_total = new_cn.sum()
-      OrderNode::Internal(children=new_ch, counts=new_cn, total=new_total)
+      OrderNode::Internal(
+        children=left_ch,
+        counts=left_cn,
+        total=left_total + right_total,
+      )
     }
     _ => abort("merge_children: mismatched node types")
   }
@@ -217,7 +208,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
   min_degree : Int,
 ) -> (OrderNode[T], T?) {
   match self {
-    Leaf(items~, ..) => {
+    Leaf(items~, total~) => {
       // Find the item at the given position
       let mut remaining = pos
       let mut delete_idx = -1
@@ -233,10 +224,10 @@ fn[T : @rle.Spanning] OrderNode::delete(
         return (self, None)
       }
       let deleted = items.remove_at(delete_idx)
-      let new_total = items.total_span()
-      (Leaf(items~, total=new_total), Some(deleted))
+      let deleted_span = @rle.Spanning::span(deleted)
+      (Leaf(items~, total=total - deleted_span), Some(deleted))
     }
-    Internal(children~, counts~, ..) => {
+    Internal(children~, counts~, total~) => {
       // Find which child contains the target position
       let mut remaining = pos
       let mut child_idx = children.length() - 1
@@ -247,11 +238,10 @@ fn[T : @rle.Spanning] OrderNode::delete(
         }
         remaining = remaining - counts[i]
       }
-      // Ensure the child has enough items before descending
+      // Ensure the child has enough items before descending.
+      // This may merge/borrow, changing array layout.
       ensure_min_items(children, counts, child_idx, min_degree)
-      // After ensure_min_items, the child_idx may have changed due to merge.
-      // If we merged with the left sibling (idx > 0 and merge happened at idx-1),
-      // the child is now at idx-1. Recompute which child to descend into.
+      // After ensure_min_items, re-find the child (merge may have shifted indices).
       let mut new_remaining = pos
       let mut new_child_idx = children.length() - 1
       for i = 0; i < children.length() - 1; i = i + 1 {
@@ -265,9 +255,13 @@ fn[T : @rle.Spanning] OrderNode::delete(
         new_remaining, min_degree,
       )
       children[new_child_idx] = updated_child
-      counts[new_child_idx] = updated_child.total()
-      let new_total = counts.sum()
-      (Internal(children~, counts~, total=new_total), deleted)
+      let old_count = counts[new_child_idx]
+      let new_count = updated_child.total()
+      counts[new_child_idx] = new_count
+      (
+        Internal(children~, counts~, total=total - (old_count - new_count)),
+        deleted,
+      )
     }
   }
 }
