@@ -2,7 +2,7 @@
 /// Test helper type for invariant tests
 priv struct TI {
   value : Int
-} derive(Show, Eq)
+}
 
 ///|
 impl @rle.HasLength for TI with length(_self) -> Int {

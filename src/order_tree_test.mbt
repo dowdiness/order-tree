@@ -1,7 +1,7 @@
 ///|
 priv struct TItem {
   value : Int
-} derive(Show, Eq)
+} derive(Show)
 
 ///|
 impl @rle.HasLength for TItem with length(_self) -> Int {

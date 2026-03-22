@@ -1,7 +1,7 @@
 ///|
 priv struct BItem {
   value : Int
-} derive(Show, Eq)
+}
 
 ///|
 impl @rle.HasLength for BItem with length(_self) {
