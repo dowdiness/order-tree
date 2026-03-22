@@ -30,13 +30,18 @@ pub struct OrderTree[T] {
   mut size : Int
 }
 pub fn[T : @rle.Spanning] OrderTree::delete_at(Self[T], Int) -> T?
+pub fn[T : @rle.Spanning] OrderTree::delete_range(Self[T], Int, Int) -> Unit
+pub fn[T] OrderTree::each(Self[T], (T) -> Unit) -> Unit
 pub fn[T : @rle.Spanning] OrderTree::find(Self[T], Int) -> FindResult[T]?
 pub fn[T : @rle.Spanning] OrderTree::get_at(Self[T], Int) -> T?
 pub fn[T : @rle.Spanning] OrderTree::insert_at(Self[T], Int, T) -> Unit
 pub fn[T] OrderTree::is_empty(Self[T]) -> Bool
+pub fn[T] OrderTree::iter(Self[T]) -> Iter[T]
 pub fn[T] OrderTree::new(min_degree? : Int) -> Self[T]
+pub fn[T : @rle.Spanning] OrderTree::set_at(Self[T], Int, T) -> T?
 pub fn[T] OrderTree::size(Self[T]) -> Int
 pub fn[T] OrderTree::span(Self[T]) -> Int
+pub fn[T] OrderTree::to_array(Self[T]) -> Array[T]
 pub impl[T : Eq] Eq for OrderTree[T]
 pub impl[T : Show] Show for OrderTree[T]
 

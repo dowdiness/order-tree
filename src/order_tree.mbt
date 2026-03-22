@@ -49,3 +49,31 @@ pub fn[T : @rle.Spanning] OrderTree::find(
     Some(node) => node.navigate(pos)
   }
 }
+
+///|
+/// Replace the item at the given span position.
+/// Returns the old item, or None if the position is out of bounds.
+pub fn[T : @rle.Spanning] OrderTree::set_at(
+  self : OrderTree[T],
+  pos : Int,
+  item : T,
+) -> T? {
+  match self.root {
+    None => None
+    Some(node) => node.set_in_node(pos, item)
+  }
+}
+
+///|
+/// Delete all items in the span range [start, end).
+/// Uses repeated delete_at(start) calls. O(k log n) where k = end - start.
+pub fn[T : @rle.Spanning] OrderTree::delete_range(
+  self : OrderTree[T],
+  start : Int,
+  end_ : Int,
+) -> Unit {
+  let count = end_ - start
+  for i = 0; i < count; i = i + 1 {
+    ignore(self.delete_at(start))
+  }
+}

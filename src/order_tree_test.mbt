@@ -197,3 +197,86 @@ test "delete all items one by one" {
   }
   inspect(tree.is_empty(), content="true")
 }
+
+///|
+test "set_at replaces item" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  let old = tree.set_at(2, ti(99))
+  inspect(old.map(fn(t) { t.value }), content="Some(2)")
+  inspect(tree.get_at(2).map(fn(t) { t.value }), content="Some(99)")
+  inspect(tree.span(), content="5")
+}
+
+///|
+test "set_at out of bounds returns None" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  tree.insert_at(0, ti(1))
+  inspect(tree.set_at(5, ti(99)), content="None")
+}
+
+///|
+test "delete_range removes contiguous items" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 10; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  tree.delete_range(3, 7)
+  inspect(tree.span(), content="6")
+  inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(0)")
+  inspect(tree.get_at(2).map(fn(t) { t.value }), content="Some(2)")
+  inspect(tree.get_at(3).map(fn(t) { t.value }), content="Some(7)")
+}
+
+///|
+test "delete_range empty range does nothing" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  tree.delete_range(2, 2)
+  inspect(tree.span(), content="5")
+}
+
+///|
+test "to_array returns items in order" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  let arr = tree.to_array()
+  inspect(arr.length(), content="5")
+  for i = 0; i < 5; i = i + 1 {
+    inspect(arr[i].value == i, content="true")
+  }
+}
+
+///|
+test "each visits all items" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  let result : Array[Int] = []
+  tree.each(fn(item) { result.push(item.value) })
+  inspect(result, content="[0, 1, 2, 3, 4]")
+}
+
+///|
+test "iter collects items" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  let result = tree.iter().map(fn(t) { t.value }).collect()
+  inspect(result, content="[0, 1, 2, 3, 4]")
+}
+
+///|
+test "iter on empty tree" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  let result = tree.iter().collect()
+  inspect(result.length(), content="0")
+}
