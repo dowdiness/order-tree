@@ -59,7 +59,7 @@ fn[T : @rle.Spanning + @rle.Mergeable] try_merge_right(
 ///|
 /// Insert an element at a position in an internal node.
 /// Returns (updated_node, optional_new_right_sibling, leaf_delta).
-/// leaf_delta: net change in leaf count (+1 = new leaf, 0 = merged into existing, +2 = mid-run split + new).
+/// leaf_delta: net change in leaf count (+1 = new leaf, 0 = merged into existing, etc.).
 fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::insert(
   self : OrderNode[T],
   pos : Int,
@@ -69,26 +69,14 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::insert(
   match self {
     Leaf(..) =>
       abort("OrderNode::insert called on Leaf — should be handled by parent")
-    Internal(children~, counts~, total~) => {
-      let old_child_count = children.length()
-      let (result, sibling) = insert_into_internal(
-        children, counts, total, pos, elem, min_degree,
-      )
-      // Compute leaf_delta from child count change at this level
-      let new_child_count = match (result, sibling) {
-        (Internal(children=ch1, ..), Some(Internal(children=ch2, ..))) =>
-          ch1.length() + ch2.length()
-        (Internal(children=ch, ..), None) => ch.length()
-        _ => old_child_count
-      }
-      let leaf_delta = new_child_count - old_child_count
-      (result, sibling, leaf_delta)
-    }
+    Internal(children~, counts~, total~) =>
+      insert_into_internal(children, counts, total, pos, elem, min_degree)
   }
 }
 
 ///|
 /// Insert into an internal node.
+/// Returns (updated_node, optional_sibling, leaf_delta).
 fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
   children : Array[OrderNode[T]],
   counts : Array[Int],
@@ -96,7 +84,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
   pos : Int,
   elem : T,
   min_degree : Int,
-) -> (OrderNode[T], OrderNode[T]?) {
+) -> (OrderNode[T], OrderNode[T]?, Int) {
   let elem_span = @rle.Spanning::span(elem)
   // Find which child to descend into (inclusive boundary for insert)
   let (child_idx, remaining) = match
@@ -111,7 +99,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
     }
   }
   match children[child_idx] {
-    Leaf(elem=existing, span=existing_span) => {
+    Leaf(elem=existing, span=existing_span) =>
       // Target is a leaf — handle insert at this level
       if remaining == 0 {
         // Insert before this leaf: try merge with left neighbor
@@ -123,12 +111,16 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
                 let merged_span = @rle.Spanning::span(merged)
                 children[child_idx - 1] = Leaf(elem=merged, span=merged_span)
                 counts[child_idx - 1] = merged_span
-                // Try merge the updated left with current
-                let _ = try_merge_right(children, counts, child_idx - 1)
+                // Try merge the updated left with current — may reduce leaf count
+                let mut leaf_delta = 0 // merged into existing, no new leaf
+                if try_merge_right(children, counts, child_idx - 1) {
+                  leaf_delta = leaf_delta - 1
+                }
                 let new_total = total + elem_span
                 return (
                   Internal(children~, counts~, total=new_total),
                   None,
+                  leaf_delta,
                 )
               }
             _ => ()
@@ -141,7 +133,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
           children[child_idx] = Leaf(elem=merged, span=merged_span)
           counts[child_idx] = merged_span
           let new_total = total + elem_span
-          return (Internal(children~, counts~, total=new_total), None)
+          return (Internal(children~, counts~, total=new_total), None, 0)
         }
         // No merge — insert new leaf before current
         let new_leaf = Leaf(elem~, span=elem_span)
@@ -150,9 +142,9 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
         let new_total = total + elem_span
         if children.length() > 2 * min_degree {
           let (left, right) = split_internal(children, counts)
-          (left, Some(right))
+          (left, Some(right), 1)
         } else {
-          (Internal(children~, counts~, total=new_total), None)
+          (Internal(children~, counts~, total=new_total), None, 1)
         }
       } else if remaining == existing_span {
         // Insert after this leaf: try merge with current
@@ -162,9 +154,16 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
           children[child_idx] = Leaf(elem=merged, span=merged_span)
           counts[child_idx] = merged_span
           // Try merge with right neighbor
-          let _ = try_merge_right(children, counts, child_idx)
+          let mut leaf_delta = 0
+          if try_merge_right(children, counts, child_idx) {
+            leaf_delta = leaf_delta - 1
+          }
           let new_total = total + elem_span
-          return (Internal(children~, counts~, total=new_total), None)
+          return (
+            Internal(children~, counts~, total=new_total),
+            None,
+            leaf_delta,
+          )
         }
         // Try merge with right neighbor
         if child_idx + 1 < children.length() {
@@ -179,6 +178,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
                 return (
                   Internal(children~, counts~, total=new_total),
                   None,
+                  0, // merged into existing right neighbor
                 )
               }
             _ => ()
@@ -191,14 +191,18 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
         let new_total = total + elem_span
         if children.length() > 2 * min_degree {
           let (left, right) = split_internal(children, counts)
-          (left, Some(right))
+          (left, Some(right), 1)
         } else {
-          (Internal(children~, counts~, total=new_total), None)
+          (Internal(children~, counts~, total=new_total), None, 1)
         }
       } else {
         // Mid-run insert: split existing element
         let left_part = must_slice(existing, start=0, end=remaining)
-        let right_part = must_slice(existing, start=remaining, end=existing_span)
+        let right_part = must_slice(
+          existing,
+          start=remaining,
+          end=existing_span,
+        )
         let left_span = @rle.Spanning::span(left_part)
         let right_span = @rle.Spanning::span(right_part)
         // Try merge left_part with elem
@@ -227,6 +231,8 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
           new_leaves.push(Leaf(elem=right_part, span=right_span))
           new_counts.push(right_span)
         }
+        // leaf_delta = new_leaves.length() - 1 (replacing 1 leaf with N)
+        let leaf_delta = new_leaves.length() - 1
         // Replace the original leaf with the new leaves
         let _ = children.remove_at(child_idx)
         let _ = counts.remove_at(child_idx)
@@ -237,12 +243,11 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
         let new_total = total + elem_span
         if children.length() > 2 * min_degree {
           let (left, right) = split_internal(children, counts)
-          (left, Some(right))
+          (left, Some(right), leaf_delta)
         } else {
-          (Internal(children~, counts~, total=new_total), None)
+          (Internal(children~, counts~, total=new_total), None, leaf_delta)
         }
       }
-    }
     Internal(..) => {
       // Target is an internal node — proactive split and recurse
       let mut cur_child_idx = child_idx
@@ -265,7 +270,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
           Leaf(..) => () // Leaves can't be full
         }
       }
-      let (updated_child, maybe_sibling, _leaf_delta) = children[cur_child_idx].insert(
+      let (updated_child, maybe_sibling, leaf_delta) = children[cur_child_idx].insert(
         cur_remaining, elem, min_degree,
       )
       match maybe_sibling {
@@ -273,7 +278,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
           children[cur_child_idx] = updated_child
           counts[cur_child_idx] = updated_child.total()
           let new_total = total + elem_span
-          (Internal(children~, counts~, total=new_total), None)
+          (Internal(children~, counts~, total=new_total), None, leaf_delta)
         }
         Some(sibling) => {
           children[cur_child_idx] = updated_child
@@ -283,9 +288,9 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
           let new_total = total + elem_span
           if children.length() > 2 * min_degree {
             let (left, right) = split_internal(children, counts)
-            (left, Some(right))
+            (left, Some(right), leaf_delta)
           } else {
-            (Internal(children~, counts~, total=new_total), None)
+            (Internal(children~, counts~, total=new_total), None, leaf_delta)
           }
         }
       }
@@ -339,7 +344,9 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::insert_at
         root
       }
       let (updated, maybe_sibling, leaf_delta) = actual_root.insert(
-        clamped_pos, elem, self.min_degree,
+        clamped_pos,
+        elem,
+        self.min_degree,
       )
       match maybe_sibling {
         None => self.root = Some(updated)

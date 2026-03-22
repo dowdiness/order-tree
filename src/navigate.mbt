@@ -67,7 +67,10 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::set_in_node(
           let old_count = counts[idx]
           let new_count = updated_child.total()
           counts[idx] = new_count
-          (Internal(children~, counts~, total=total - old_count + new_count), old)
+          (
+            Internal(children~, counts~, total=total - old_count + new_count),
+            old,
+          )
         }
         None => (self, None)
       }
@@ -77,10 +80,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::set_in_node(
 ///|
 /// Navigate to the element containing span position `pos`.
 /// Returns FindResult with the element and offset within it.
-fn[T] OrderNode::navigate(
-  self : OrderNode[T],
-  pos : Int,
-) -> FindResult[T]? {
+fn[T] OrderNode::navigate(self : OrderNode[T], pos : Int) -> FindResult[T]? {
   match self {
     Leaf(elem~, span~) =>
       if pos >= 0 && pos < span {

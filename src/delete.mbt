@@ -159,7 +159,8 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::delete(
   min_degree : Int,
 ) -> (OrderNode[T], T?, Int) {
   match self {
-    Leaf(..) => abort("OrderNode::delete called on Leaf — should be handled by parent")
+    Leaf(..) =>
+      abort("OrderNode::delete called on Leaf — should be handled by parent")
     Internal(children~, counts~, total~) => {
       // Find which child contains the target position
       let (child_idx, remaining) = match
@@ -171,7 +172,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::delete(
         }
       }
       match children[child_idx] {
-        Leaf(elem~, span~) => {
+        Leaf(elem~, span~) =>
           // Delete from this leaf
           if span == 1 {
             // Remove the entire leaf
@@ -184,7 +185,11 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::delete(
                 leaf_delta = leaf_delta - 1
               }
             }
-            (Internal(children~, counts~, total=total - 1), Some(elem), leaf_delta)
+            (
+              Internal(children~, counts~, total=total - 1),
+              Some(elem),
+              leaf_delta,
+            )
           } else if remaining == 0 {
             // Delete first unit
             let deleted = must_slice(elem, start=0, end=1)
@@ -192,14 +197,18 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::delete(
             let rest_span = @rle.Spanning::span(rest)
             children[child_idx] = Leaf(elem=rest, span=rest_span)
             counts[child_idx] = rest_span
-            let mut leaf_delta = 0  // leaf trimmed, count unchanged
+            let mut leaf_delta = 0 // leaf trimmed, count unchanged
             if child_idx > 0 {
               if try_merge_right(children, counts, child_idx - 1) {
                 leaf_delta = leaf_delta - 1
               }
             }
             (
-              Internal(children~, counts~, total=total - @rle.Spanning::span(deleted)),
+              Internal(
+                children~,
+                counts~,
+                total=total - @rle.Spanning::span(deleted),
+              ),
               Some(deleted),
               leaf_delta,
             )
@@ -217,7 +226,11 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::delete(
               }
             }
             (
-              Internal(children~, counts~, total=total - @rle.Spanning::span(deleted)),
+              Internal(
+                children~,
+                counts~,
+                total=total - @rle.Spanning::span(deleted),
+              ),
               Some(deleted),
               leaf_delta,
             )
@@ -225,11 +238,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::delete(
             // Mid-run delete: split into left + right, removing unit at remaining
             let deleted = must_slice(elem, start=remaining, end=remaining + 1)
             let left_part = must_slice(elem, start=0, end=remaining)
-            let right_part = must_slice(
-              elem,
-              start=remaining + 1,
-              end=span,
-            )
+            let right_part = must_slice(elem, start=remaining + 1, end=span)
             let left_span = @rle.Spanning::span(left_part)
             let right_span = @rle.Spanning::span(right_part)
             let mut leaf_delta = 0
@@ -248,15 +257,18 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::delete(
                 Leaf(elem=right_part, span=right_span),
               )
               counts.insert_at(child_idx + 1, right_span)
-              leaf_delta = 1  // one leaf became two
+              leaf_delta = 1 // one leaf became two
             }
             (
-              Internal(children~, counts~, total=total - @rle.Spanning::span(deleted)),
+              Internal(
+                children~,
+                counts~,
+                total=total - @rle.Spanning::span(deleted),
+              ),
               Some(deleted),
               leaf_delta,
             )
           }
-        }
         Internal(..) => {
           // Ensure child has enough children before descending
           ensure_min_children(children, counts, child_idx, min_degree)

@@ -67,9 +67,7 @@ pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
         let total = prev.length() + last.length()
         let new_prev_count = (total + 1) / 2
         let new_last_count = total - new_prev_count
-        let new_last : Array[OrderNode[T]] = Array::new(
-          capacity=new_last_count,
-        )
+        let new_last : Array[OrderNode[T]] = Array::new(capacity=new_last_count)
         for i in new_prev_count..<(new_prev_count + new_last_count) {
           if i < prev.length() {
             new_last.push(prev[i])
