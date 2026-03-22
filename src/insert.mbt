@@ -13,8 +13,8 @@ fn[T : @rle.Spanning] split_leaf(
   for i = mid; i < items.length(); i = i + 1 {
     right_items.push(items[i])
   }
-  let left_total = compute_items_span(left_items)
-  let right_total = compute_items_span(right_items)
+  let left_total = left_items.total_span()
+  let right_total = right_items.total_span()
   (
     Leaf(items=left_items, total=left_total),
     Leaf(items=right_items, total=right_total),
@@ -43,8 +43,8 @@ fn[T] split_internal(
     right_children.push(children[i])
     right_counts.push(counts[i])
   }
-  let left_total = sum_array(left_counts)
-  let right_total = sum_array(right_counts)
+  let left_total = left_counts.sum()
+  let right_total = right_counts.sum()
   (
     Internal(children=left_children, counts=left_counts, total=left_total),
     Internal(children=right_children, counts=right_counts, total=right_total),
@@ -138,18 +138,18 @@ fn[T : @rle.Spanning] insert_into_internal(
   let mut cur_counts = counts
   let mut cur_child_idx = child_idx
   let mut cur_remaining = remaining
-  if is_node_full(cur_children[cur_child_idx], min_degree) {
+  if cur_children[cur_child_idx].is_full(min_degree) {
     let child = cur_children[cur_child_idx]
     let (left, right) = match child {
       Leaf(items~, ..) => split_leaf(items)
       Internal(children~, counts~, ..) => split_internal(children, counts)
     }
-    let left_total = node_total(left)
+    let left_total = left.total()
     // Use array_insert for proactive split instead of building new arrays
     cur_children[cur_child_idx] = left
     cur_counts[cur_child_idx] = left_total
-    array_insert(cur_children, cur_child_idx + 1, right)
-    array_insert(cur_counts, cur_child_idx + 1, node_total(right))
+    cur_children.insert_at(cur_child_idx + 1, right)
+    cur_counts.insert_at(cur_child_idx + 1, right.total())
     // Decide which of the two split children to descend into
     if cur_remaining > left_total {
       cur_remaining = cur_remaining - left_total
@@ -165,7 +165,7 @@ fn[T : @rle.Spanning] insert_into_internal(
     None => {
       // In-place mutation: update the child and count directly
       cur_children[cur_child_idx] = updated_child
-      cur_counts[cur_child_idx] = node_total(updated_child)
+      cur_counts[cur_child_idx] = updated_child.total()
       let new_total = _total + @rle.Spanning::span(item)
       (
         Internal(children=cur_children, counts=cur_counts, total=new_total),
@@ -175,9 +175,9 @@ fn[T : @rle.Spanning] insert_into_internal(
     Some(sibling) => {
       // Child split: replace child with updated + insert sibling after it
       cur_children[cur_child_idx] = updated_child
-      cur_counts[cur_child_idx] = node_total(updated_child)
-      array_insert(cur_children, cur_child_idx + 1, sibling)
-      array_insert(cur_counts, cur_child_idx + 1, node_total(sibling))
+      cur_counts[cur_child_idx] = updated_child.total()
+      cur_children.insert_at(cur_child_idx + 1, sibling)
+      cur_counts.insert_at(cur_child_idx + 1, sibling.total())
       let new_total = _total + @rle.Spanning::span(item)
       let new_node = Internal(
         children=cur_children,
@@ -224,8 +224,8 @@ pub fn[T : @rle.Spanning] OrderTree::insert_at(
       match maybe_sibling {
         None => self.root = Some(updated)
         Some(sibling) => {
-          let left_total = node_total(updated)
-          let right_total = node_total(sibling)
+          let left_total = updated.total()
+          let right_total = sibling.total()
           self.root = Some(
             Internal(
               children=[updated, sibling],

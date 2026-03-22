@@ -14,9 +14,9 @@ fn[T : @rle.Spanning] borrow_from_left(
       Leaf(items=left_items, total=left_total),
       Leaf(items=target_items, total=target_total),
     ) => {
-      let borrowed = array_remove(left_items, left_items.length() - 1)
+      let borrowed = left_items.remove_at(left_items.length() - 1)
       let borrowed_span = @rle.Spanning::span(borrowed)
-      array_insert(target_items, 0, borrowed)
+      target_items.insert_at(0, borrowed)
       let new_left_total = left_total - borrowed_span
       let new_target_total = target_total + borrowed_span
       children[idx - 1] = Leaf(items=left_items, total=new_left_total)
@@ -29,10 +29,10 @@ fn[T : @rle.Spanning] borrow_from_left(
       Internal(children=target_ch, counts=target_cn, total=target_total),
     ) => {
       let last_idx = left_ch.length() - 1
-      let borrowed_child = array_remove(left_ch, last_idx)
-      let borrowed_count = array_remove(left_cn, last_idx)
-      array_insert(target_ch, 0, borrowed_child)
-      array_insert(target_cn, 0, borrowed_count)
+      let borrowed_child = left_ch.remove_at(last_idx)
+      let borrowed_count = left_cn.remove_at(last_idx)
+      target_ch.insert_at(0, borrowed_child)
+      target_cn.insert_at(0, borrowed_count)
       let new_left_total = left_total - borrowed_count
       let new_target_total = target_total + borrowed_count
       children[idx - 1] = Internal(
@@ -66,7 +66,7 @@ fn[T : @rle.Spanning] borrow_from_right(
       Leaf(items=target_items, total=target_total),
       Leaf(items=right_items, total=right_total),
     ) => {
-      let borrowed = array_remove(right_items, 0)
+      let borrowed = right_items.remove_at(0)
       let borrowed_span = @rle.Spanning::span(borrowed)
       target_items.push(borrowed)
       let new_target_total = target_total + borrowed_span
@@ -80,8 +80,8 @@ fn[T : @rle.Spanning] borrow_from_right(
       Internal(children=target_ch, counts=target_cn, total=target_total),
       Internal(children=right_ch, counts=right_cn, total=right_total),
     ) => {
-      let borrowed_child = array_remove(right_ch, 0)
-      let borrowed_count = array_remove(right_cn, 0)
+      let borrowed_child = right_ch.remove_at(0)
+      let borrowed_count = right_cn.remove_at(0)
       target_ch.push(borrowed_child)
       target_cn.push(borrowed_count)
       let new_target_total = target_total + borrowed_count
@@ -124,7 +124,7 @@ fn[T : @rle.Spanning] merge_children(
       for i = 0; i < right_items.length(); i = i + 1 {
         new_items.push(right_items[i])
       }
-      let new_total = compute_items_span(new_items)
+      let new_total = new_items.total_span()
       OrderNode::Leaf(items=new_items, total=new_total)
     }
     (
@@ -145,16 +145,16 @@ fn[T : @rle.Spanning] merge_children(
         new_ch.push(right_ch[i])
         new_cn.push(right_cn[i])
       }
-      let new_total = sum_array(new_cn)
+      let new_total = new_cn.sum()
       OrderNode::Internal(children=new_ch, counts=new_cn, total=new_total)
     }
     _ => abort("merge_children: mismatched node types")
   }
   // Replace left child with merged, remove right child
   children[idx] = merged
-  counts[idx] = node_total(merged)
-  let _ = array_remove(children, idx + 1)
-  let _ = array_remove(counts, idx + 1)
+  counts[idx] = merged.total()
+  let _ = children.remove_at(idx + 1)
+  let _ = counts.remove_at(idx + 1)
 }
 
 ///|
@@ -232,8 +232,8 @@ fn[T : @rle.Spanning] OrderNode::delete(
       if delete_idx < 0 {
         return (self, None)
       }
-      let deleted = array_remove(items, delete_idx)
-      let new_total = compute_items_span(items)
+      let deleted = items.remove_at(delete_idx)
+      let new_total = items.total_span()
       (Leaf(items~, total=new_total), Some(deleted))
     }
     Internal(children~, counts~, ..) => {
@@ -265,8 +265,8 @@ fn[T : @rle.Spanning] OrderNode::delete(
         new_remaining, min_degree,
       )
       children[new_child_idx] = updated_child
-      counts[new_child_idx] = node_total(updated_child)
-      let new_total = sum_array(counts)
+      counts[new_child_idx] = updated_child.total()
+      let new_total = counts.sum()
       (Internal(children~, counts~, total=new_total), deleted)
     }
   }
@@ -282,7 +282,7 @@ pub fn[T : @rle.Spanning] OrderTree::delete_at(
   match self.root {
     None => None
     Some(root) => {
-      if pos < 0 || pos >= node_total(root) {
+      if pos < 0 || pos >= root.total() {
         return None
       }
       let (updated, deleted) = root.delete(pos, self.min_degree)

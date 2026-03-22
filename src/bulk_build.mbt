@@ -66,7 +66,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
   )
   for g = 0; g < groups.length(); g = g + 1 {
     let group = groups[g]
-    let total = compute_items_span(group)
+    let total = group.total_span()
     current_layer.push(Leaf(items=group, total~))
   }
 
@@ -125,9 +125,9 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
       let cgroup = child_groups[g]
       let counts : Array[Int] = Array::new(capacity=cgroup.length())
       for i = 0; i < cgroup.length(); i = i + 1 {
-        counts.push(node_total(cgroup[i]))
+        counts.push(cgroup[i].total())
       }
-      let total = sum_array(counts)
+      let total = counts.sum()
       next_layer.push(Internal(children=cgroup, counts~, total~))
     }
     current_layer = next_layer

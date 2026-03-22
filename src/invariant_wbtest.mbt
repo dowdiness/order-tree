@@ -96,7 +96,7 @@ fn[T] check_occupancy(
 fn[T : @rle.Spanning] check_totals(node : OrderNode[T]) -> String? {
   match node {
     Leaf(items~, total~) => {
-      let expected = compute_items_span(items)
+      let expected = items.total_span()
       if total != expected {
         return Some("leaf total=\{total} but sum of spans=\{expected}")
       }
@@ -109,17 +109,17 @@ fn[T : @rle.Spanning] check_totals(node : OrderNode[T]) -> String? {
           "counts.length()=\{counts.length()} != children.length()=\{children.length()}",
         )
       }
-      // Check counts[i] == node_total(children[i])
+      // Check counts[i] == children[i].total()
       for i = 0; i < children.length(); i = i + 1 {
-        let ct = node_total(children[i])
+        let ct = children[i].total()
         if counts[i] != ct {
           return Some(
-            "counts[\{i}]=\{counts[i]} but node_total(children[\{i}])=\{ct}",
+            "counts[\{i}]=\{counts[i]} but children[\{i}].total()=\{ct}",
           )
         }
       }
       // Check total == sum of counts
-      let expected_total = sum_array(counts)
+      let expected_total = counts.sum()
       if total != expected_total {
         return Some(
           "internal total=\{total} but sum of counts=\{expected_total}",

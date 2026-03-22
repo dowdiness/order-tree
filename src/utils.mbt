@@ -1,50 +1,48 @@
 ///|
-/// Remove an element at the given index from an array, returning the removed element.
-/// Shifts subsequent elements left.
-fn[T] array_remove(arr : Array[T], idx : Int) -> T {
-  let item = arr[idx]
-  for i = idx; i < arr.length() - 1; i = i + 1 {
-    arr[i] = arr[i + 1]
+/// Remove an element at the given index, shifting subsequent elements left.
+fn[T] Array::remove_at(self : Array[T], idx : Int) -> T {
+  let item = self[idx]
+  for i = idx; i < self.length() - 1; i = i + 1 {
+    self[i] = self[i + 1]
   }
-  let _ = arr.pop()
+  let _ = self.pop()
   item
 }
 
 ///|
-/// Insert an element at the given index in an array.
-/// Shifts subsequent elements right.
-fn[T] array_insert(arr : Array[T], idx : Int, item : T) -> Unit {
-  arr.push(item) // extend length by 1
-  for i = arr.length() - 1; i > idx; i = i - 1 {
-    arr[i] = arr[i - 1]
+/// Insert an element at the given index, shifting subsequent elements right.
+fn[T] Array::insert_at(self : Array[T], idx : Int, item : T) -> Unit {
+  self.push(item)
+  for i = self.length() - 1; i > idx; i = i - 1 {
+    self[i] = self[i - 1]
   }
-  arr[idx] = item
+  self[idx] = item
 }
 
 ///|
 /// Compute the total span of an array of items.
-fn[T : @rle.Spanning] compute_items_span(items : Array[T]) -> Int {
+fn[T : @rle.Spanning] Array::total_span(self : Array[T]) -> Int {
   let mut total = 0
-  for i = 0; i < items.length(); i = i + 1 {
-    total = total + @rle.Spanning::span(items[i])
+  for i = 0; i < self.length(); i = i + 1 {
+    total = total + @rle.Spanning::span(self[i])
   }
   total
 }
 
 ///|
 /// Sum all elements of an Int array.
-fn sum_array(arr : Array[Int]) -> Int {
+fn Array::sum(self : Array[Int]) -> Int {
   let mut total = 0
-  for i = 0; i < arr.length(); i = i + 1 {
-    total = total + arr[i]
+  for i = 0; i < self.length(); i = i + 1 {
+    total = total + self[i]
   }
   total
 }
 
 ///|
 /// Get the total span of a node.
-fn[T] node_total(node : OrderNode[T]) -> Int {
-  match node {
+fn[T] OrderNode::total(self : OrderNode[T]) -> Int {
+  match self {
     Leaf(total~, ..) => total
     Internal(total~, ..) => total
   }
@@ -54,10 +52,9 @@ fn[T] node_total(node : OrderNode[T]) -> Int {
 /// Check if a node is full.
 /// Leaves: max items = 2*t - 1.
 /// Internal: max children = 2*t.
-fn[T] is_node_full(node : OrderNode[T], min_degree : Int) -> Bool {
-  let max_items = 2 * min_degree - 1
-  match node {
-    Leaf(items~, ..) => items.length() >= max_items
+fn[T] OrderNode::is_full(self : OrderNode[T], min_degree : Int) -> Bool {
+  match self {
+    Leaf(items~, ..) => items.length() >= 2 * min_degree - 1
     Internal(children~, ..) => children.length() >= 2 * min_degree
   }
 }
