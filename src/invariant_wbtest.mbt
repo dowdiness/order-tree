@@ -44,7 +44,9 @@ fn[T] leaf_depth(node : OrderNode[T], depth : Int) -> Int? {
 
 ///|
 /// Check that node occupancy is within B-tree bounds.
-/// is_root: root is exempt from minimum occupancy and maximum occupancy.
+/// is_root: root is exempt from MINIMUM occupancy only.
+/// Maximum occupancy is enforced for all nodes including root
+/// (root pre-split in insert_at ensures this).
 /// Non-root leaves: [min_degree-1, 2*min_degree-1] items.
 /// Non-root internal: [min_degree, 2*min_degree] children.
 fn[T] check_occupancy(
@@ -60,7 +62,7 @@ fn[T] check_occupancy(
       if not(is_root) && n < min_items {
         return Some("leaf has \{n} items, below minimum \{min_items}")
       }
-      if not(is_root) && n > max_items {
+      if n > max_items {
         return Some("leaf has \{n} items, above maximum \{max_items}")
       }
       None
@@ -74,7 +76,7 @@ fn[T] check_occupancy(
           "internal node has \{n} children, below minimum \{min_children}",
         )
       }
-      if not(is_root) && n > max_children {
+      if n > max_children {
         return Some(
           "internal node has \{n} children, above maximum \{max_children}",
         )

@@ -48,6 +48,9 @@ pub fn[T : @rle.Spanning] OrderTree::get_at(
   self : OrderTree[T],
   pos : Int,
 ) -> T? {
+  if pos < 0 {
+    return None
+  }
   match self.root {
     None => None
     Some(node) =>
@@ -63,6 +66,9 @@ pub fn[T : @rle.Spanning] OrderTree::find(
   self : OrderTree[T],
   pos : Int,
 ) -> FindResult[T]? {
+  if pos < 0 {
+    return None
+  }
   match self.root {
     None => None
     Some(node) => node.navigate(pos)
@@ -77,6 +83,9 @@ pub fn[T : @rle.Spanning] OrderTree::set_at(
   pos : Int,
   item : T,
 ) -> T? {
+  if pos < 0 {
+    return None
+  }
   match self.root {
     None => None
     Some(node) => node.set_in_node(pos, item)
@@ -103,8 +112,9 @@ pub fn[T : @rle.Spanning] OrderTree::view(
   end? : Int,
 ) -> Array[T] {
   let total = @rle.Spanning::span(self)
+  let start = if start < 0 { 0 } else { start }
   let end = match end {
-    Some(e) => e
+    Some(e) => if e > total { total } else { e }
     None => total
   }
   let result : Array[T] = []

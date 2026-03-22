@@ -216,7 +216,25 @@ pub fn[T : @rle.Spanning] OrderTree::insert_at(
       self.root = Some(Leaf(items=[item], total=item_span))
     }
     Some(root) => {
-      let (updated, maybe_sibling) = root.insert(
+      // Pre-split root if full (standard top-down B-tree approach).
+      // This ensures the root never exceeds max occupancy after
+      // proactive child splits during descent.
+      let actual_root = if root.is_full(self.min_degree) {
+        let (left, right) = match root {
+          Leaf(items~, ..) => split_leaf(items)
+          Internal(children~, counts~, ..) => split_internal(children, counts)
+        }
+        let left_total = left.total()
+        let right_total = right.total()
+        Internal(
+          children=[left, right],
+          counts=[left_total, right_total],
+          total=left_total + right_total,
+        )
+      } else {
+        root
+      }
+      let (updated, maybe_sibling) = actual_root.insert(
         clamped_pos,
         item,
         self.min_degree,
