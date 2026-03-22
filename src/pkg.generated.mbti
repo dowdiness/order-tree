@@ -32,10 +32,10 @@ pub struct OrderTree[T] {
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_at(Self[T], Int) -> T?
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(Self[T], Int, Int) -> Unit
 pub fn[T] OrderTree::each(Self[T], (T) -> Unit) -> Unit
-pub fn[T : @rle.Spanning] OrderTree::find(Self[T], Int) -> FindResult[T]?
+pub fn[T] OrderTree::find(Self[T], Int) -> FindResult[T]?
 pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(Array[T], min_degree? : Int) -> Self[T]
 #alias("_[_]")
-pub fn[T : @rle.Spanning] OrderTree::get_at(Self[T], Int) -> T?
+pub fn[T] OrderTree::get_at(Self[T], Int) -> T?
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::insert_at(Self[T], Int, T) -> Unit
 pub fn[T] OrderTree::iter(Self[T]) -> Iter[T]
 pub fn[T] OrderTree::new(min_degree? : Int) -> Self[T]

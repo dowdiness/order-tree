@@ -44,10 +44,7 @@ pub impl[T] @rle.Spanning for OrderTree[T] with logical_length(self) -> Int {
 ///|
 /// Get the element at span position. Aliased as `tree[pos]`.
 #alias("_[_]")
-pub fn[T] OrderTree::get_at(
-  self : OrderTree[T],
-  pos : Int,
-) -> T? {
+pub fn[T] OrderTree::get_at(self : OrderTree[T], pos : Int) -> T? {
   if pos < 0 {
     return None
   }
@@ -62,10 +59,7 @@ pub fn[T] OrderTree::get_at(
 }
 
 ///|
-pub fn[T] OrderTree::find(
-  self : OrderTree[T],
-  pos : Int,
-) -> FindResult[T]? {
+pub fn[T] OrderTree::find(self : OrderTree[T], pos : Int) -> FindResult[T]? {
   if pos < 0 {
     return None
   }
