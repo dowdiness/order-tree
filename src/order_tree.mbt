@@ -12,17 +12,33 @@ pub fn[T] OrderTree::is_empty(self : OrderTree[T]) -> Bool {
 }
 
 ///|
-pub fn[T] OrderTree::span(self : OrderTree[T]) -> Int {
+/// Total leaf entries.
+pub fn[T] OrderTree::size(self : OrderTree[T]) -> Int {
+  self.size
+}
+
+///|
+/// HasLength: number of leaf entries (same as size).
+pub impl[T] @rle.HasLength for OrderTree[T] with length(self) -> Int {
+  self.size
+}
+
+///|
+/// Spanning: total span across all items. O(1) via cached root total.
+pub impl[T] @rle.Spanning for OrderTree[T] with span(self) -> Int {
   match self.root {
     None => 0
-    Some(Leaf(total~, ..)) => total
-    Some(Internal(total~, ..)) => total
+    Some(node) => node.total()
   }
 }
 
 ///|
-pub fn[T] OrderTree::size(self : OrderTree[T]) -> Int {
-  self.size
+/// Spanning: logical_length defaults to span for now.
+pub impl[T] @rle.Spanning for OrderTree[T] with logical_length(self) -> Int {
+  match self.root {
+    None => 0
+    Some(node) => node.total()
+  }
 }
 
 ///|

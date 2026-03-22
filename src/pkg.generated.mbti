@@ -41,8 +41,9 @@ pub fn[T] OrderTree::iter(Self[T]) -> Iter[T]
 pub fn[T] OrderTree::new(min_degree? : Int) -> Self[T]
 pub fn[T : @rle.Spanning] OrderTree::set_at(Self[T], Int, T) -> T?
 pub fn[T] OrderTree::size(Self[T]) -> Int
-pub fn[T] OrderTree::span(Self[T]) -> Int
 pub fn[T] OrderTree::to_array(Self[T]) -> Array[T]
+pub impl[T] @rle.HasLength for OrderTree[T]
+pub impl[T] @rle.Spanning for OrderTree[T]
 pub impl[T : Eq] Eq for OrderTree[T]
 pub impl[T : Show] Show for OrderTree[T]
 

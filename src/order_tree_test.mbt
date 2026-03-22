@@ -348,3 +348,19 @@ test "from_array then insert works" {
   inspect(tree.span(), content="51")
   inspect(tree.get_at(25).map(fn(t) { t.value }), content="Some(999)")
 }
+
+///|
+test "rle trait: HasLength and Spanning" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  // Empty: length and span are 0
+  inspect(@rle.HasLength::length(tree), content="0")
+  inspect(@rle.Spanning::span(tree), content="0")
+  // After inserts
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  inspect(@rle.HasLength::length(tree), content="5")
+  inspect(@rle.Spanning::span(tree), content="5")
+  // Method call syntax also works
+  inspect(tree.span(), content="5")
+}
