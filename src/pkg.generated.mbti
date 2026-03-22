@@ -29,6 +29,7 @@ pub struct OrderTree[T] {
   min_degree : Int
   mut size : Int
 }
+pub fn[T : @rle.Spanning] OrderTree::delete_at(Self[T], Int) -> T?
 pub fn[T : @rle.Spanning] OrderTree::find(Self[T], Int) -> FindResult[T]?
 pub fn[T : @rle.Spanning] OrderTree::get_at(Self[T], Int) -> T?
 pub fn[T : @rle.Spanning] OrderTree::insert_at(Self[T], Int, T) -> Unit

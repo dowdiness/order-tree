@@ -116,3 +116,84 @@ test "insert_at beyond span appends" {
   inspect(tree.span(), content="2")
   inspect(tree.get_at(1).map(fn(t) { t.value }), content="Some(2)")
 }
+
+///|
+test "delete_at from single-item tree" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  tree.insert_at(0, ti(42))
+  let deleted = tree.delete_at(0)
+  inspect(deleted.map(fn(t) { t.value }), content="Some(42)")
+  inspect(tree.is_empty(), content="true")
+}
+
+///|
+test "delete_at from beginning" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  let deleted = tree.delete_at(0)
+  inspect(deleted.map(fn(t) { t.value }), content="Some(0)")
+  inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(1)")
+  inspect(tree.span(), content="4")
+}
+
+///|
+test "delete_at from end" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  let deleted = tree.delete_at(4)
+  inspect(deleted.map(fn(t) { t.value }), content="Some(4)")
+  inspect(tree.span(), content="4")
+}
+
+///|
+test "delete_at from middle" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 5; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  let deleted = tree.delete_at(2)
+  inspect(deleted.map(fn(t) { t.value }), content="Some(2)")
+  inspect(tree.get_at(2).map(fn(t) { t.value }), content="Some(3)")
+  inspect(tree.span(), content="4")
+}
+
+///|
+test "delete_at triggers underflow and borrow/merge" {
+  let tree : OrderTree[TItem] = OrderTree::new(min_degree=2)
+  for i = 0; i < 7; i = i + 1 {
+    tree.insert_at(i, ti(i * 10))
+  }
+  // Delete enough to trigger underflow
+  for i = 0; i < 5; i = i + 1 {
+    ignore(tree.delete_at(0))
+  }
+  inspect(tree.span(), content="2")
+  inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(50)")
+  inspect(tree.get_at(1).map(fn(t) { t.value }), content="Some(60)")
+}
+
+///|
+test "delete_at out of bounds returns None" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  tree.insert_at(0, ti(1))
+  inspect(tree.delete_at(5), content="None")
+  inspect(tree.delete_at(-1), content="None")
+  inspect(tree.span(), content="1")
+}
+
+///|
+test "delete all items one by one" {
+  let tree : OrderTree[TItem] = OrderTree::new(min_degree=2)
+  for i = 0; i < 20; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  for i = 0; i < 20; i = i + 1 {
+    let deleted = tree.delete_at(0)
+    inspect(deleted.map(fn(t) { t.value }) == Some(i), content="true")
+  }
+  inspect(tree.is_empty(), content="true")
+}
