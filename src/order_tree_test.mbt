@@ -280,3 +280,71 @@ test "iter on empty tree" {
   let result = tree.iter().collect()
   inspect(result.length(), content="0")
 }
+
+///|
+test "from_array empty" {
+  let tree : OrderTree[TItem] = OrderTree::from_array([])
+  inspect(tree.is_empty(), content="true")
+  inspect(tree.span(), content="0")
+}
+
+///|
+test "from_array single item" {
+  let tree = OrderTree::from_array([ti(42)])
+  inspect(tree.span(), content="1")
+  inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(42)")
+}
+
+///|
+test "from_array 10 items" {
+  let items = Array::makei(10, fn(i) { ti(i) })
+  let tree = OrderTree::from_array(items)
+  inspect(tree.span(), content="10")
+  for i = 0; i < 10; i = i + 1 {
+    inspect(tree.get_at(i).map(fn(t) { t.value }) == Some(i), content="true")
+  }
+}
+
+///|
+test "from_array roundtrip" {
+  let items = Array::makei(100, fn(i) { ti(i) })
+  let tree = OrderTree::from_array(items)
+  inspect(tree.span(), content="100")
+  inspect(tree.size(), content="100")
+  let arr = tree.to_array()
+  for i = 0; i < 100; i = i + 1 {
+    inspect(arr[i].value == i, content="true")
+  }
+}
+
+///|
+test "from_array with small min_degree" {
+  let items = Array::makei(20, fn(i) { ti(i) })
+  let tree = OrderTree::from_array(items, min_degree=2)
+  inspect(tree.span(), content="20")
+  for i = 0; i < 20; i = i + 1 {
+    inspect(tree.get_at(i).map(fn(t) { t.value }) == Some(i), content="true")
+  }
+}
+
+///|
+test "from_array then delete works" {
+  let tree = OrderTree::from_array(
+    Array::makei(50, fn(i) { ti(i) }),
+    min_degree=3,
+  )
+  ignore(tree.delete_at(25))
+  inspect(tree.span(), content="49")
+  inspect(tree.get_at(25).map(fn(t) { t.value }), content="Some(26)")
+}
+
+///|
+test "from_array then insert works" {
+  let tree = OrderTree::from_array(
+    Array::makei(50, fn(i) { ti(i) }),
+    min_degree=3,
+  )
+  tree.insert_at(25, ti(999))
+  inspect(tree.span(), content="51")
+  inspect(tree.get_at(25).map(fn(t) { t.value }), content="Some(999)")
+}
