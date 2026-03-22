@@ -233,10 +233,23 @@ test "set_at replaces item" {
 }
 
 ///|
-test "set_at out of bounds returns None" {
+test "set_at out of bounds returns None and leaves tree unchanged" {
   let tree : OrderTree[TItem] = OrderTree::new()
   tree.insert_at(0, ti(1))
+  let old_span = tree.span()
+  let old_size = tree.size()
   inspect(tree.set_at(5, ti(99)), content="None")
+  // Tree must be unchanged
+  inspect(tree.span(), content=old_span.to_string())
+  inspect(tree.size(), content=old_size.to_string())
+}
+
+///|
+test "set_at negative pos returns None" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  tree.insert_at(0, ti(1))
+  inspect(tree.set_at(-1, ti(99)), content="None")
+  inspect(tree.span(), content="1")
 }
 
 ///|
@@ -597,6 +610,26 @@ test "view slices at boundaries" {
   inspect(v.length(), content="1")
   inspect(v[0].start, content="3")
   inspect(v[0].count, content="4")
+}
+
+///|
+test "set_at on mergeable type triggers neighbor merge" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  // Build: [0..2) and [5] — two leaves
+  tree.insert_at(0, mi(0)) // [0]
+  tree.insert_at(1, mi(5)) // [0] [5]
+  tree.insert_at(1, mi(1)) // [0..2) [5] — mi(1) merges with mi(0)
+  inspect(tree.size(), content="2")
+  // set_at(1, mi(4)): delete mi(1) from [0..2), then insert mi(4) at pos 1
+  // After delete: [0] [5] (two leaves)
+  // Insert mi(4) at pos 1: between [0] and [5], can_merge(mi(4), mi(5)) → [4..6)
+  // Result: [0] [4..6) — two leaves
+  let old = tree.set_at(1, mi(4))
+  inspect(old.unwrap().start, content="1")
+  // Position 1 should now be mi(4)
+  let fr1 = tree.find(1).unwrap()
+  inspect(fr1.elem.start, content="4")
+  inspect(fr1.elem.count, content="2") // [4..6) merged with [5]
 }
 
 ///|

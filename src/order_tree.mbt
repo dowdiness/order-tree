@@ -72,8 +72,7 @@ pub fn[T] OrderTree::find(self : OrderTree[T], pos : Int) -> FindResult[T]? {
 ///|
 /// Replace the element at the given span position.
 /// Returns the old single-unit slice, or None if out of bounds.
-/// Falls back to delete_at + insert_at when in-place replacement isn't possible
-/// (e.g., mid-run replacement where new element isn't merge-compatible with neighbors).
+/// Implemented as delete_at + insert_at to ensure neighbor merging.
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::set_at(
   self : OrderTree[T],
   pos : Int,
@@ -84,19 +83,14 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::set_at(
   }
   match self.root {
     None => None
-    Some(node) => {
-      let (updated, old) = node.set_in_node(pos, elem)
-      match old {
+    Some(_) => {
+      let deleted = self.delete_at(pos)
+      match deleted {
         Some(_) => {
-          self.root = Some(updated)
-          old
-        }
-        None => {
-          // set_in_node couldn't handle mid-run replacement — fall back to delete+insert
-          let deleted = self.delete_at(pos)
           self.insert_at(pos, elem)
           deleted
         }
+        None => None // pos was out of bounds
       }
     }
   }
