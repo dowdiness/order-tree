@@ -119,8 +119,8 @@ fn[T : @rle.Spanning] merge_children(
       Leaf(items=right_items, total=right_total),
     ) => {
       // Append right items to left (reuse left array)
-      for i = 0; i < right_items.length(); i = i + 1 {
-        left_items.push(right_items[i])
+      for x in right_items {
+        left_items.push(x)
       }
       OrderNode::Leaf(items=left_items, total=left_total + right_total)
     }
@@ -129,7 +129,7 @@ fn[T : @rle.Spanning] merge_children(
       Internal(children=right_ch, counts=right_cn, total=right_total),
     ) => {
       // Append right children/counts to left (reuse left arrays)
-      for i = 0; i < right_ch.length(); i = i + 1 {
+      for i in 0..<right_ch.length() {
         left_ch.push(right_ch[i])
         left_cn.push(right_cn[i])
       }
@@ -212,7 +212,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
       // Find the item at the given position
       let mut remaining = pos
       let mut delete_idx = -1
-      for i = 0; i < items.length(); i = i + 1 {
+      for i in 0..<items.length() {
         let s = @rle.Spanning::span(items[i])
         if remaining < s {
           delete_idx = i
@@ -231,7 +231,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
       // Find which child contains the target position
       let mut remaining = pos
       let mut child_idx = children.length() - 1
-      for i = 0; i < children.length() - 1; i = i + 1 {
+      for i in 0..<(children.length() - 1) {
         if remaining < counts[i] {
           child_idx = i
           break
@@ -244,7 +244,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
       // After ensure_min_items, re-find the child (merge may have shifted indices).
       let mut new_remaining = pos
       let mut new_child_idx = children.length() - 1
-      for i = 0; i < children.length() - 1; i = i + 1 {
+      for i in 0..<(children.length() - 1) {
         if new_remaining < counts[i] {
           new_child_idx = i
           break

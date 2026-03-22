@@ -21,7 +21,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
   while start < n {
     let end = if start + max_items >= n { n } else { start + max_items }
     let group : Array[T] = Array::new(capacity=end - start)
-    for i = start; i < end; i = i + 1 {
+    for i in start..<end {
       group.push(items[i])
     }
     groups.push(group)
@@ -45,7 +45,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
       let new_last_count = total - new_prev_count
       // Build new_last from items at the boundary
       let new_last : Array[T] = Array::new(capacity=new_last_count)
-      for i = new_prev_count; i < new_prev_count + new_last_count; i = i + 1 {
+      for i in new_prev_count..<(new_prev_count + new_last_count) {
         if i < prev.length() {
           new_last.push(prev[i])
         } else {
@@ -64,8 +64,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
   let mut current_layer : Array[OrderNode[T]] = Array::new(
     capacity=groups.length(),
   )
-  for g = 0; g < groups.length(); g = g + 1 {
-    let group = groups[g]
+  for group in groups {
     let total = group.total_span()
     current_layer.push(Leaf(items=group, total~))
   }
@@ -86,7 +85,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
         cstart + max_children
       }
       let cgroup : Array[OrderNode[T]] = Array::new(capacity=cend - cstart)
-      for i = cstart; i < cend; i = i + 1 {
+      for i in cstart..<cend {
         cgroup.push(current_layer[i])
       }
       child_groups.push(cgroup)
@@ -103,7 +102,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
         let new_prev_count = (total + 1) / 2
         let new_last_count = total - new_prev_count
         let new_last : Array[OrderNode[T]] = Array::new(capacity=new_last_count)
-        for i = new_prev_count; i < new_prev_count + new_last_count; i = i + 1 {
+        for i in new_prev_count..<(new_prev_count + new_last_count) {
           if i < prev.length() {
             new_last.push(prev[i])
           } else {
@@ -121,11 +120,10 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
     let next_layer : Array[OrderNode[T]] = Array::new(
       capacity=child_groups.length(),
     )
-    for g = 0; g < child_groups.length(); g = g + 1 {
-      let cgroup = child_groups[g]
+    for cgroup in child_groups {
       let counts : Array[Int] = Array::new(capacity=cgroup.length())
-      for i = 0; i < cgroup.length(); i = i + 1 {
-        counts.push(cgroup[i].total())
+      for node in cgroup {
+        counts.push(node.total())
       }
       let total = counts.sum()
       next_layer.push(Internal(children=cgroup, counts~, total~))

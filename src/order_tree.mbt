@@ -144,7 +144,7 @@ pub fn[T : @rle.Spanning] OrderTree::delete_range(
   end_ : Int,
 ) -> Unit {
   let count = end_ - start
-  for i = 0; i < count; i = i + 1 {
+  for _ in 0..<count {
     ignore(self.delete_at(start))
   }
 }

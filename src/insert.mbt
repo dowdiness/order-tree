@@ -6,12 +6,12 @@ fn[T : @rle.Spanning] split_leaf(
 ) -> (OrderNode[T], OrderNode[T]) {
   let mid = items.length() / 2
   let left_items : Array[T] = Array::new(capacity=mid)
-  for i = 0; i < mid; i = i + 1 {
-    left_items.push(items[i])
+  for item in items[0:mid] {
+    left_items.push(item)
   }
   let right_items : Array[T] = Array::new(capacity=items.length() - mid)
-  for i = mid; i < items.length(); i = i + 1 {
-    right_items.push(items[i])
+  for item in items[mid:] {
+    right_items.push(item)
   }
   let left_total = left_items.total_span()
   let right_total = right_items.total_span()
@@ -31,7 +31,7 @@ fn[T] split_internal(
   let mid = children.length() / 2
   let left_children : Array[OrderNode[T]] = Array::new(capacity=mid)
   let left_counts : Array[Int] = Array::new(capacity=mid)
-  for i = 0; i < mid; i = i + 1 {
+  for i in 0..<mid {
     left_children.push(children[i])
     left_counts.push(counts[i])
   }
@@ -39,7 +39,7 @@ fn[T] split_internal(
     capacity=children.length() - mid,
   )
   let right_counts : Array[Int] = Array::new(capacity=children.length() - mid)
-  for i = mid; i < children.length(); i = i + 1 {
+  for i in mid..<children.length() {
     right_children.push(children[i])
     right_counts.push(counts[i])
   }
@@ -82,7 +82,7 @@ fn[T : @rle.Spanning] insert_into_leaf(
   // Find insertion index by scanning spans
   let mut remaining = pos
   let mut insert_idx = items.length()
-  for i = 0; i < items.length(); i = i + 1 {
+  for i in 0..<items.length() {
     if remaining <= 0 {
       insert_idx = i
       break
@@ -96,12 +96,12 @@ fn[T : @rle.Spanning] insert_into_leaf(
   }
   // Build new items array with the item inserted
   let new_items : Array[T] = Array::new(capacity=items.length() + 1)
-  for i = 0; i < insert_idx; i = i + 1 {
-    new_items.push(items[i])
+  for x in items[0:insert_idx] {
+    new_items.push(x)
   }
   new_items.push(item)
-  for i = insert_idx; i < items.length(); i = i + 1 {
-    new_items.push(items[i])
+  for x in items[insert_idx:] {
+    new_items.push(x)
   }
   let new_total = total + item_span
   let max_items = 2 * min_degree - 1
@@ -126,7 +126,7 @@ fn[T : @rle.Spanning] insert_into_internal(
   // Find which child to descend into
   let mut remaining = pos
   let mut child_idx = children.length() - 1
-  for i = 0; i < children.length() - 1; i = i + 1 {
+  for i in 0..<(children.length() - 1) {
     if remaining <= counts[i] {
       child_idx = i
       break
