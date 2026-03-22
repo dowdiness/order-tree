@@ -1,8 +1,6 @@
 ///|
-/// Borrow the last item from the left sibling and prepend it to child at idx.
-/// For leaves: move last item from left to front of target.
-/// For internal nodes: move last child from left to front of target.
-fn[T : @rle.Spanning] borrow_from_left(
+/// Borrow the last child from left sibling and prepend to target.
+fn[T] borrow_from_left(
   children : Array[OrderNode[T]],
   counts : Array[Int],
   idx : Int,
@@ -10,20 +8,6 @@ fn[T : @rle.Spanning] borrow_from_left(
   let left = children[idx - 1]
   let target = children[idx]
   match (left, target) {
-    (
-      Leaf(items=left_items, total=left_total),
-      Leaf(items=target_items, total=target_total),
-    ) => {
-      let borrowed = left_items.remove_at(left_items.length() - 1)
-      let borrowed_span = @rle.Spanning::span(borrowed)
-      target_items.insert_at(0, borrowed)
-      let new_left_total = left_total - borrowed_span
-      let new_target_total = target_total + borrowed_span
-      children[idx - 1] = Leaf(items=left_items, total=new_left_total)
-      children[idx] = Leaf(items=target_items, total=new_target_total)
-      counts[idx - 1] = new_left_total
-      counts[idx] = new_target_total
-    }
     (
       Internal(children=left_ch, counts=left_cn, total=left_total),
       Internal(children=target_ch, counts=target_cn, total=target_total),
@@ -48,13 +32,13 @@ fn[T : @rle.Spanning] borrow_from_left(
       counts[idx - 1] = new_left_total
       counts[idx] = new_target_total
     }
-    _ => abort("borrow_from_left: mismatched node types")
+    _ => abort("borrow_from_left: expected internal nodes")
   }
 }
 
 ///|
-/// Borrow the first item from the right sibling and append it to child at idx.
-fn[T : @rle.Spanning] borrow_from_right(
+/// Borrow the first child from right sibling and append to target.
+fn[T] borrow_from_right(
   children : Array[OrderNode[T]],
   counts : Array[Int],
   idx : Int,
@@ -62,20 +46,6 @@ fn[T : @rle.Spanning] borrow_from_right(
   let target = children[idx]
   let right = children[idx + 1]
   match (target, right) {
-    (
-      Leaf(items=target_items, total=target_total),
-      Leaf(items=right_items, total=right_total),
-    ) => {
-      let borrowed = right_items.remove_at(0)
-      let borrowed_span = @rle.Spanning::span(borrowed)
-      target_items.push(borrowed)
-      let new_target_total = target_total + borrowed_span
-      let new_right_total = right_total - borrowed_span
-      children[idx] = Leaf(items=target_items, total=new_target_total)
-      children[idx + 1] = Leaf(items=right_items, total=new_right_total)
-      counts[idx] = new_target_total
-      counts[idx + 1] = new_right_total
-    }
     (
       Internal(children=target_ch, counts=target_cn, total=target_total),
       Internal(children=right_ch, counts=right_cn, total=right_total),
@@ -99,13 +69,12 @@ fn[T : @rle.Spanning] borrow_from_right(
       counts[idx] = new_target_total
       counts[idx + 1] = new_right_total
     }
-    _ => abort("borrow_from_right: mismatched node types")
+    _ => abort("borrow_from_right: expected internal nodes")
   }
 }
 
 ///|
-/// Merge child at idx with child at idx+1 (the right sibling).
-/// The right sibling is removed from the parent arrays.
+/// Merge child at idx with child at idx+1 (both must be Internal).
 fn[T] merge_children(
   children : Array[OrderNode[T]],
   counts : Array[Int],
@@ -113,66 +82,50 @@ fn[T] merge_children(
 ) -> Unit {
   let left = children[idx]
   let right = children[idx + 1]
-  let merged = match (left, right) {
-    (
-      Leaf(items=left_items, total=left_total),
-      Leaf(items=right_items, total=right_total),
-    ) => {
-      // Append right items to left (reuse left array)
-      for x in right_items {
-        left_items.push(x)
-      }
-      OrderNode::Leaf(items=left_items, total=left_total + right_total)
-    }
+  match (left, right) {
     (
       Internal(children=left_ch, counts=left_cn, total=left_total),
       Internal(children=right_ch, counts=right_cn, total=right_total),
     ) => {
-      // Append right children/counts to left (reuse left arrays)
       for i in 0..<right_ch.length() {
         left_ch.push(right_ch[i])
         left_cn.push(right_cn[i])
       }
-      OrderNode::Internal(
+      let merged = Internal(
         children=left_ch,
         counts=left_cn,
         total=left_total + right_total,
       )
+      children[idx] = merged
+      counts[idx] = merged.total()
+      let _ = children.remove_at(idx + 1)
+      let _ = counts.remove_at(idx + 1)
     }
-    _ => abort("merge_children: mismatched node types")
+    _ => abort("merge_children: expected internal nodes")
   }
-  // Replace left child with merged, remove right child
-  children[idx] = merged
-  counts[idx] = merged.total()
-  let _ = children.remove_at(idx + 1)
-  let _ = counts.remove_at(idx + 1)
 }
 
 ///|
-/// Whether this node needs rebalancing before a delete descends into it.
-/// Leaf: at or below min occupancy (min_degree - 1 items).
-/// Internal: at or below min occupancy (min_degree children).
+/// Whether this internal node needs rebalancing (too few children).
 fn[T] OrderNode::needs_rebalance(self : OrderNode[T], min_degree : Int) -> Bool {
   match self {
-    Leaf(items~, ..) => items.length() <= min_degree - 1
+    Leaf(..) => false // Leaves don't have occupancy constraints
     Internal(children~, ..) => children.length() <= min_degree
   }
 }
 
 ///|
-/// Whether this node has enough entries to lend one to a sibling.
-/// Must have strictly MORE than the minimum after lending.
+/// Whether this internal node can lend a child.
 fn[T] OrderNode::can_lend(self : OrderNode[T], min_degree : Int) -> Bool {
   match self {
-    Leaf(items~, ..) => items.length() > min_degree - 1
+    Leaf(..) => false
     Internal(children~, ..) => children.length() > min_degree
   }
 }
 
 ///|
-/// Ensure the child at idx has enough entries that a delete won't cause underflow.
-/// If not, borrow from a sibling or merge.
-fn[T : @rle.Spanning] ensure_min_items(
+/// Ensure the child at idx has enough children that a delete won't cause underflow.
+fn[T] ensure_min_children(
   children : Array[OrderNode[T]],
   counts : Array[Int],
   idx : Int,
@@ -181,17 +134,14 @@ fn[T : @rle.Spanning] ensure_min_items(
   if not(children[idx].needs_rebalance(min_degree)) {
     return
   }
-  // Try borrow from left sibling
   if idx > 0 && children[idx - 1].can_lend(min_degree) {
     borrow_from_left(children, counts, idx)
     return
   }
-  // Try borrow from right sibling
   if idx < children.length() - 1 && children[idx + 1].can_lend(min_degree) {
     borrow_from_right(children, counts, idx)
     return
   }
-  // Merge: prefer merging with left sibling if available
   if idx > 0 {
     merge_children(children, counts, idx - 1)
   } else {
@@ -200,27 +150,20 @@ fn[T : @rle.Spanning] ensure_min_items(
 }
 
 ///|
-/// Delete the item at the given span position from this node.
-/// Returns the updated node and the deleted item (if found).
-fn[T : @rle.Spanning] OrderNode::delete(
+/// Delete a single unit at span position from an internal node.
+/// Returns (updated_node, deleted_unit, leaf_delta).
+/// leaf_delta: net change in leaf count (-1 = leaf removed, 0 = leaf trimmed, +1 = split into two).
+fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::delete(
   self : OrderNode[T],
   pos : Int,
   min_degree : Int,
-) -> (OrderNode[T], T?) {
+) -> (OrderNode[T], T?, Int) {
   match self {
-    Leaf(items~, total~) => {
-      // Find the item at the given position using shared leaf walker
-      let delete_idx = match items[:].find_by_span(pos, (i, _) => Some(i)) {
-        Some(i) => i
-        None => return (self, None)
-      }
-      let deleted = items.remove_at(delete_idx)
-      let deleted_span = @rle.Spanning::span(deleted)
-      (Leaf(items~, total=total - deleted_span), Some(deleted))
-    }
+    Leaf(..) =>
+      abort("OrderNode::delete called on Leaf — should be handled by parent")
     Internal(children~, counts~, total~) => {
       // Find which child contains the target position
-      let (child_idx, _) = match
+      let (child_idx, remaining) = match
         counts[:counts.length() - 1].find_by_sum(pos, fn(i, r) { Some((i, r)) }) {
         Some(pair) => pair
         None => {
@@ -228,37 +171,140 @@ fn[T : @rle.Spanning] OrderNode::delete(
           (last, pos - (total - counts[last]))
         }
       }
-      // Ensure the child has enough items before descending.
-      // This may merge/borrow, changing array layout.
-      ensure_min_items(children, counts, child_idx, min_degree)
-      // After ensure_min_items, re-find the child (merge may have shifted indices).
-      let (new_child_idx, new_remaining) = match
-        counts[:counts.length() - 1].find_by_sum(pos, fn(i, r) { Some((i, r)) }) {
-        Some(pair) => pair
-        None => {
-          let last = children.length() - 1
-          (last, pos - (total - counts[last]))
+      match children[child_idx] {
+        Leaf(elem~, span~) =>
+          // Delete from this leaf
+          if span == 1 {
+            // Remove the entire leaf
+            let _ = children.remove_at(child_idx)
+            let _ = counts.remove_at(child_idx)
+            // Try merge new neighbors — may reduce leaf count by 1 more
+            let mut leaf_delta = -1
+            if child_idx > 0 && child_idx < children.length() {
+              if try_merge_right(children, counts, child_idx - 1) {
+                leaf_delta = leaf_delta - 1
+              }
+            }
+            (
+              Internal(children~, counts~, total=total - 1),
+              Some(elem),
+              leaf_delta,
+            )
+          } else if remaining == 0 {
+            // Delete first unit
+            let deleted = must_slice(elem, start=0, end=1)
+            let rest = must_slice(elem, start=1, end=span)
+            let rest_span = @rle.Spanning::span(rest)
+            children[child_idx] = Leaf(elem=rest, span=rest_span)
+            counts[child_idx] = rest_span
+            let mut leaf_delta = 0 // leaf trimmed, count unchanged
+            if child_idx > 0 {
+              if try_merge_right(children, counts, child_idx - 1) {
+                leaf_delta = leaf_delta - 1
+              }
+            }
+            (
+              Internal(
+                children~,
+                counts~,
+                total=total - @rle.Spanning::span(deleted),
+              ),
+              Some(deleted),
+              leaf_delta,
+            )
+          } else if remaining == span - 1 {
+            // Delete last unit
+            let deleted = must_slice(elem, start=span - 1, end=span)
+            let rest = must_slice(elem, start=0, end=span - 1)
+            let rest_span = @rle.Spanning::span(rest)
+            children[child_idx] = Leaf(elem=rest, span=rest_span)
+            counts[child_idx] = rest_span
+            let mut leaf_delta = 0
+            if child_idx + 1 < children.length() {
+              if try_merge_right(children, counts, child_idx) {
+                leaf_delta = leaf_delta - 1
+              }
+            }
+            (
+              Internal(
+                children~,
+                counts~,
+                total=total - @rle.Spanning::span(deleted),
+              ),
+              Some(deleted),
+              leaf_delta,
+            )
+          } else {
+            // Mid-run delete: split into left + right, removing unit at remaining
+            let deleted = must_slice(elem, start=remaining, end=remaining + 1)
+            let left_part = must_slice(elem, start=0, end=remaining)
+            let right_part = must_slice(elem, start=remaining + 1, end=span)
+            let left_span = @rle.Spanning::span(left_part)
+            let right_span = @rle.Spanning::span(right_part)
+            let mut leaf_delta = 0
+            if @rle.Mergeable::can_merge(left_part, right_part) {
+              let merged = @rle.Mergeable::merge(left_part, right_part)
+              let merged_span = @rle.Spanning::span(merged)
+              children[child_idx] = Leaf(elem=merged, span=merged_span)
+              counts[child_idx] = merged_span
+              // leaf_delta = 0 (one leaf stays one leaf)
+            } else {
+              // Replace with two leaves
+              children[child_idx] = Leaf(elem=left_part, span=left_span)
+              counts[child_idx] = left_span
+              children.insert_at(
+                child_idx + 1,
+                Leaf(elem=right_part, span=right_span),
+              )
+              counts.insert_at(child_idx + 1, right_span)
+              leaf_delta = 1 // one leaf became two
+            }
+            (
+              Internal(
+                children~,
+                counts~,
+                total=total - @rle.Spanning::span(deleted),
+              ),
+              Some(deleted),
+              leaf_delta,
+            )
+          }
+        Internal(..) => {
+          // Ensure child has enough children before descending
+          ensure_min_children(children, counts, child_idx, min_degree)
+          // Re-find after potential merge
+          let (new_idx, new_remaining) = match
+            counts[:counts.length() - 1].find_by_sum(pos, fn(i, r) {
+              Some((i, r))
+            }) {
+            Some(pair) => pair
+            None => {
+              let last = children.length() - 1
+              (last, pos - (total - counts[last]))
+            }
+          }
+          let (updated_child, deleted, leaf_delta) = children[new_idx].delete(
+            new_remaining, min_degree,
+          )
+          children[new_idx] = updated_child
+          let old_count = counts[new_idx]
+          let new_count = updated_child.total()
+          counts[new_idx] = new_count
+          (
+            Internal(children~, counts~, total=total - (old_count - new_count)),
+            deleted,
+            leaf_delta,
+          )
         }
       }
-      let (updated_child, deleted) = children[new_child_idx].delete(
-        new_remaining, min_degree,
-      )
-      children[new_child_idx] = updated_child
-      let old_count = counts[new_child_idx]
-      let new_count = updated_child.total()
-      counts[new_child_idx] = new_count
-      (
-        Internal(children~, counts~, total=total - (old_count - new_count)),
-        deleted,
-      )
     }
   }
 }
 
 ///|
-/// Delete the item at the given span position from the tree.
-/// Returns the deleted item, or None if the position is out of bounds.
-pub fn[T : @rle.Spanning] OrderTree::delete_at(
+/// Delete the element at the given span position from the tree.
+/// Returns a single-unit slice of the deleted element.
+pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_at(
   self : OrderTree[T],
   pos : Int,
 ) -> T? {
@@ -268,28 +314,25 @@ pub fn[T : @rle.Spanning] OrderTree::delete_at(
       if pos < 0 || pos >= root.total() {
         return None
       }
-      let (updated, deleted) = root.delete(pos, self.min_degree)
+      let (updated, deleted, leaf_delta) = root.delete(pos, self.min_degree)
       match deleted {
         None => None
         Some(item) => {
-          // Shrink root if needed
           match updated {
-            Leaf(items~, ..) =>
-              if items.length() == 0 {
-                self.root = None
-              } else {
-                self.root = Some(updated)
-              }
             Internal(children~, ..) =>
               if children.length() == 1 {
-                self.root = Some(children[0])
+                match children[0] {
+                  Internal(..) => self.root = Some(children[0])
+                  Leaf(..) => self.root = Some(updated)
+                }
               } else if children.length() == 0 {
                 self.root = None
               } else {
                 self.root = Some(updated)
               }
+            Leaf(..) => abort("root should always be Internal")
           }
-          self.size = self.size - 1
+          self.size = self.size + leaf_delta
           Some(item)
         }
       }

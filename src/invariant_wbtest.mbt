@@ -15,6 +15,28 @@ impl @rle.Spanning for TI with span(_self) -> Int {
 }
 
 ///|
+impl @rle.Mergeable for TI with can_merge(_self, _other) -> Bool {
+  false
+}
+
+///|
+impl @rle.Mergeable for TI with merge(_self, _other) -> TI {
+  abort("TI::merge: unreachable — can_merge always returns false")
+}
+
+///|
+impl @rle.Sliceable for TI with slice(self, start~ : Int, end~ : Int) -> Result[
+  TI,
+  @rle.RleError,
+] {
+  if start == 0 && end == 1 {
+    Ok(self)
+  } else {
+    Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
+  }
+}
+
+///|
 fn mki(v : Int) -> TI {
   { value: v }
 }
@@ -43,11 +65,8 @@ fn[T] leaf_depth(node : OrderNode[T], depth : Int) -> Int? {
 }
 
 ///|
-/// Check that node occupancy is within B-tree bounds.
-/// is_root: root is exempt from MINIMUM occupancy only.
-/// Maximum occupancy is enforced for all nodes including root
-/// (root pre-split in insert_at ensures this).
-/// Non-root leaves: [min_degree-1, 2*min_degree-1] items.
+/// Check that internal node occupancy is within B-tree bounds.
+/// Leaves are exempt from occupancy constraints (they hold exactly one element).
 /// Non-root internal: [min_degree, 2*min_degree] children.
 fn[T] check_occupancy(
   node : OrderNode[T],
@@ -55,18 +74,7 @@ fn[T] check_occupancy(
   is_root : Bool,
 ) -> String? {
   match node {
-    Leaf(items~, ..) => {
-      let n = items.length()
-      let min_items = min_degree - 1
-      let max_items = 2 * min_degree - 1
-      if not(is_root) && n < min_items {
-        return Some("leaf has \{n} items, below minimum \{min_items}")
-      }
-      if n > max_items {
-        return Some("leaf has \{n} items, above maximum \{max_items}")
-      }
-      None
-    }
+    Leaf(..) => None // Leaves have no occupancy constraints
     Internal(children~, ..) => {
       let n = children.length()
       let min_children = min_degree
@@ -95,12 +103,16 @@ fn[T] check_occupancy(
 
 ///|
 /// Check that counts arrays match node_total of each child, and totals are sums of counts.
+/// Also checks leaf span consistency.
 fn[T : @rle.Spanning] check_totals(node : OrderNode[T]) -> String? {
   match node {
-    Leaf(items~, total~) => {
-      let expected = items.total_span()
-      if total != expected {
-        return Some("leaf total=\{total} but sum of spans=\{expected}")
+    Leaf(elem~, span~) => {
+      let actual_span = @rle.Spanning::span(elem)
+      if span != actual_span {
+        return Some("leaf cached span=\{span} but element span=\{actual_span}")
+      }
+      if span <= 0 {
+        return Some("leaf has zero or negative span=\{span}")
       }
       None
     }
@@ -140,10 +152,10 @@ fn[T : @rle.Spanning] check_totals(node : OrderNode[T]) -> String? {
 }
 
 ///|
-/// Count the total number of leaf items (not spans) across all leaves.
+/// Count the total number of leaf nodes.
 fn[T] count_leaf_items(node : OrderNode[T]) -> Int {
   match node {
-    Leaf(items~, ..) => items.length()
+    Leaf(..) => 1
     Internal(children~, ..) => {
       let mut total = 0
       for i = 0; i < children.length(); i = i + 1 {
@@ -155,9 +167,43 @@ fn[T] count_leaf_items(node : OrderNode[T]) -> Int {
 }
 
 ///|
+/// Check that no two adjacent leaf siblings under the same parent are mergeable.
+fn[T : @rle.Mergeable] check_no_adjacent_mergeable(
+  node : OrderNode[T],
+) -> String? {
+  match node {
+    Leaf(..) => None
+    Internal(children~, ..) => {
+      // Check adjacent leaf pairs
+      for i = 0; i < children.length() - 1; i = i + 1 {
+        match (children[i], children[i + 1]) {
+          (Leaf(elem=left, ..), Leaf(elem=right, ..)) =>
+            if @rle.Mergeable::can_merge(left, right) {
+              return Some(
+                "adjacent leaves at indices \{i} and \{i + 1} are mergeable",
+              )
+            }
+          _ => ()
+        }
+      }
+      // Recurse into children
+      for i = 0; i < children.length(); i = i + 1 {
+        match check_no_adjacent_mergeable(children[i]) {
+          Some(e) => return Some(e)
+          None => ()
+        }
+      }
+      None
+    }
+  }
+}
+
+///|
 /// Check all B-tree invariants for the given tree.
 /// Returns None if all invariants hold, Some(error_message) if any is violated.
-fn[T : @rle.Spanning] check_invariants(tree : OrderTree[T]) -> String? {
+fn[T : @rle.Spanning + @rle.Mergeable] check_invariants(
+  tree : OrderTree[T],
+) -> String? {
   match tree.root {
     None => {
       if tree.size != 0 {
@@ -166,6 +212,11 @@ fn[T : @rle.Spanning] check_invariants(tree : OrderTree[T]) -> String? {
       None
     }
     Some(root) => {
+      // 0. Root must be Internal
+      match root {
+        Leaf(..) => return Some("root is a bare Leaf, should be Internal")
+        Internal(..) => ()
+      }
       // 1. Leaf depth uniform
       match leaf_depth(root, 0) {
         None => return Some("leaf depth not uniform")
@@ -176,17 +227,22 @@ fn[T : @rle.Spanning] check_invariants(tree : OrderTree[T]) -> String? {
         Some(e) => return Some(e)
         None => ()
       }
-      // 3. Counts/totals correct
+      // 3. Counts/totals correct (including leaf span consistency)
       match check_totals(root) {
         Some(e) => return Some(e)
         None => ()
       }
-      // 4. Size matches leaf item count
+      // 4. Size matches leaf node count
       let actual_size = count_leaf_items(root)
       if actual_size != tree.size {
         return Some(
           "size mismatch: tree.size=\{tree.size} actual=\{actual_size}",
         )
+      }
+      // 5. No adjacent mergeable leaves under same parent
+      match check_no_adjacent_mergeable(root) {
+        Some(e) => return Some(e)
+        None => ()
       }
       None
     }

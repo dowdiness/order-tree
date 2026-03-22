@@ -20,12 +20,6 @@ fn[T] Array::insert_at(self : Array[T], idx : Int, item : T) -> Unit {
 }
 
 ///|
-/// Compute the total span of an array of items.
-fn[T : @rle.Spanning] Array::total_span(self : Array[T]) -> Int {
-  self.iter().fold(init=0, fn(acc, item) { acc + @rle.Spanning::span(item) })
-}
-
-///|
 /// Sum all elements of an Int array.
 fn Array::sum(self : Array[Int]) -> Int {
   self.iter().fold(init=0, fn(acc, x) { acc + x })
@@ -35,45 +29,33 @@ fn Array::sum(self : Array[Int]) -> Int {
 /// Get the total span of a node.
 fn[T] OrderNode::total(self : OrderNode[T]) -> Int {
   match self {
-    Leaf(total~, ..) => total
+    Leaf(span~, ..) => span
     Internal(total~, ..) => total
   }
 }
 
 ///|
-/// Check if a node is full.
-/// Leaves: max items = 2*t - 1.
-/// Internal: max children = 2*t.
+/// Check if an internal node is full.
+/// Leaves are never "full" in the B-tree sense — they hold exactly one element.
 fn[T] OrderNode::is_full(self : OrderNode[T], min_degree : Int) -> Bool {
   match self {
-    Leaf(items~, ..) => items.length() >= 2 * min_degree - 1
+    Leaf(..) => false
     Internal(children~, ..) => children.length() >= 2 * min_degree
+  }
+}
+
+///|
+/// Unwrap a Sliceable::slice result, aborting on failure.
+/// Slice failure at a navigated position indicates a violated precondition.
+fn[T : @rle.Sliceable] must_slice(elem : T, start~ : Int, end~ : Int) -> T {
+  match @rle.Sliceable::slice(elem, start~, end~) {
+    Ok(result) => result
+    Err(_) => abort("OrderTree internal error: slice failed")
   }
 }
 
 // === General tree-walking helpers ===
 // Local methods on ArrayView. Used by navigate, insert, and delete.
-
-///|
-/// Walk items by span to find the item at position `pos`.
-/// Calls `f(index, offset_within_item)` when found.
-fn[T : @rle.Spanning, R] ArrayView::find_by_span(
-  self : ArrayView[T],
-  pos : Int,
-  f : (Int, Int) -> R?,
-) -> R? {
-  loop (self, pos, 0) {
-    ([], _, _) => None
-    ([item, .. rest], remaining, i) => {
-      let s = @rle.Spanning::span(item)
-      if remaining < s {
-        f(i, remaining)
-      } else {
-        continue (rest, remaining - s, i + 1)
-      }
-    }
-  }
-}
 
 ///|
 /// Walk cumulative sums to find which slot contains position `pos`.

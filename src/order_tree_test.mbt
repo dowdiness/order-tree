@@ -14,6 +14,28 @@ impl @rle.Spanning for TItem with span(_self) -> Int {
 }
 
 ///|
+impl @rle.Mergeable for TItem with can_merge(_self, _other) -> Bool {
+  false
+}
+
+///|
+impl @rle.Mergeable for TItem with merge(_self, _other) -> TItem {
+  abort("TItem::merge: unreachable — can_merge always returns false")
+}
+
+///|
+impl @rle.Sliceable for TItem with slice(self, start~ : Int, end~ : Int) -> Result[
+  TItem,
+  @rle.RleError,
+] {
+  if start == 0 && end == 1 {
+    Ok(self)
+  } else {
+    Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
+  }
+}
+
+///|
 fn ti(v : Int) -> TItem {
   { value: v }
 }
@@ -211,10 +233,23 @@ test "set_at replaces item" {
 }
 
 ///|
-test "set_at out of bounds returns None" {
+test "set_at out of bounds returns None and leaves tree unchanged" {
   let tree : OrderTree[TItem] = OrderTree::new()
   tree.insert_at(0, ti(1))
+  let old_span = tree.span()
+  let old_size = tree.size()
   inspect(tree.set_at(5, ti(99)), content="None")
+  // Tree must be unchanged
+  inspect(tree.span(), content=old_span.to_string())
+  inspect(tree.size(), content=old_size.to_string())
+}
+
+///|
+test "set_at negative pos returns None" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  tree.insert_at(0, ti(1))
+  inspect(tree.set_at(-1, ti(99)), content="None")
+  inspect(tree.span(), content="1")
 }
 
 ///|
@@ -406,4 +441,226 @@ test "view operator: tree[start:end]" {
   // Empty range
   let empty = tree[5:5]
   inspect(empty.length(), content="0")
+}
+
+// ====================================================================
+// Mergeable test type for RLE-specific tests
+// ====================================================================
+
+///|
+/// A test type that merges when values are consecutive.
+priv struct MItem {
+  start : Int
+  count : Int
+} derive(Show)
+
+///|
+impl @rle.HasLength for MItem with length(self) -> Int {
+  self.count
+}
+
+///|
+impl @rle.Spanning for MItem with span(self) -> Int {
+  self.count
+}
+
+///|
+impl @rle.Mergeable for MItem with can_merge(self, other) -> Bool {
+  self.start + self.count == other.start
+}
+
+///|
+impl @rle.Mergeable for MItem with merge(self, other) -> MItem {
+  { start: self.start, count: self.count + other.count }
+}
+
+///|
+impl @rle.Sliceable for MItem with slice(self, start~ : Int, end~ : Int) -> Result[
+  MItem,
+  @rle.RleError,
+] {
+  if start < 0 || end > self.count || start >= end {
+    Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
+  } else {
+    Ok({ start: self.start + start, count: end - start })
+  }
+}
+
+///|
+fn mi(start : Int) -> MItem {
+  { start, count: 1 }
+}
+
+///|
+fn mr(start : Int, count : Int) -> MItem {
+  { start, count }
+}
+
+// ====================================================================
+// RLE merge-on-insert tests
+// ====================================================================
+
+///|
+test "merge on sequential insert" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mi(0))
+  tree.insert_at(1, mi(1))
+  tree.insert_at(2, mi(2))
+  inspect(tree.size(), content="1") // All merged into one leaf
+  inspect(tree.span(), content="3")
+}
+
+///|
+test "no merge on non-consecutive insert" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mi(0))
+  tree.insert_at(1, mi(5)) // Not consecutive — no merge
+  inspect(tree.size(), content="2")
+}
+
+///|
+test "merge on boundary insert" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 3)) // [0..3)
+  tree.insert_at(3, mr(3, 2)) // [0..5) — merged
+  inspect(tree.size(), content="1")
+  inspect(tree.span(), content="5")
+}
+
+// ====================================================================
+// RLE split-on-insert tests
+// ====================================================================
+
+///|
+test "split on mid-run insert" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 5)) // [0..5)
+  tree.insert_at(2, mi(100)) // Split [0..5) at 2 → [0..2), [100], [2..5)
+  inspect(tree.span(), content="6")
+  // Position 0 → start=0
+  // Position 2 → start=100
+  // Position 3 → start=2
+  inspect(tree.find(0).unwrap().elem.start, content="0")
+  inspect(tree.find(2).unwrap().elem.start, content="100")
+  inspect(tree.find(3).unwrap().elem.start, content="2")
+}
+
+// ====================================================================
+// RLE split-on-delete tests
+// ====================================================================
+
+///|
+test "delete from middle of run" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 5)) // [0..5)
+  let deleted = tree.delete_at(2) // Delete unit at pos 2 → [0..2), [3..5)
+  inspect(deleted.unwrap().start, content="2")
+  inspect(tree.span(), content="4")
+}
+
+///|
+test "delete first unit of run" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 3))
+  let deleted = tree.delete_at(0)
+  inspect(deleted.unwrap().start, content="0")
+  inspect(tree.span(), content="2")
+  inspect(tree.find(0).unwrap().elem.start, content="1")
+}
+
+///|
+test "delete last unit of run" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 3))
+  let deleted = tree.delete_at(2)
+  inspect(deleted.unwrap().start, content="2")
+  inspect(tree.span(), content="2")
+  inspect(tree.find(1).unwrap().elem.start, content="0")
+}
+
+// ====================================================================
+// RLE from_array tests
+// ====================================================================
+
+///|
+test "from_array merges consecutive items" {
+  let items = [mi(0), mi(1), mi(2), mi(5), mi(6)]
+  let tree = OrderTree::from_array(items, min_degree=3)
+  inspect(tree.size(), content="2") // [0..3) and [5..7)
+  inspect(tree.span(), content="5")
+}
+
+///|
+test "from_array filters zero-span" {
+  let items = [mr(0, 0), mi(1), mr(2, 0), mi(2)]
+  let tree = OrderTree::from_array(items, min_degree=3)
+  inspect(tree.size(), content="1") // [1..3) after filter + merge
+  inspect(tree.span(), content="2")
+}
+
+// ====================================================================
+// RLE view tests
+// ====================================================================
+
+///|
+test "view slices at boundaries" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 10))
+  let v = tree.view(start=3, end=7)
+  inspect(v.length(), content="1")
+  inspect(v[0].start, content="3")
+  inspect(v[0].count, content="4")
+}
+
+///|
+test "set_at on mergeable type triggers neighbor merge" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  // Build: [0..2) and [5] — two leaves
+  tree.insert_at(0, mi(0)) // [0]
+  tree.insert_at(1, mi(5)) // [0] [5]
+  tree.insert_at(1, mi(1)) // [0..2) [5] — mi(1) merges with mi(0)
+  inspect(tree.size(), content="2")
+  // set_at(1, mi(4)): delete mi(1) from [0..2), then insert mi(4) at pos 1
+  // After delete: [0] [5] (two leaves)
+  // Insert mi(4) at pos 1: between [0] and [5], can_merge(mi(4), mi(5)) → [4..6)
+  // Result: [0] [4..6) — two leaves
+  let old = tree.set_at(1, mi(4))
+  inspect(old.unwrap().start, content="1")
+  // Position 1 should now be mi(4)
+  let fr1 = tree.find(1).unwrap()
+  inspect(fr1.elem.start, content="4")
+  inspect(fr1.elem.count, content="2") // [4..6) merged with [5]
+}
+
+///|
+test "same-run delete_range with mergeable type" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 10)) // [0..10)
+  tree.delete_range(3, 7) // Delete positions 3-6 → [0..3) and [7..10)
+  inspect(@rle.Spanning::span(tree), content="6")
+  // First element should be [0..3)
+  let fr0 = tree.find(0).unwrap()
+  inspect(fr0.elem.start, content="0")
+  inspect(fr0.elem.count, content="3")
+  // Second element should be [7..10)
+  let fr3 = tree.find(3).unwrap()
+  inspect(fr3.elem.start, content="7")
+  inspect(fr3.elem.count, content="3")
+}
+
+// ====================================================================
+// RLE round-trip tests
+// ====================================================================
+
+///|
+test "round-trip: insert many then to_array" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  for i = 0; i < 100; i = i + 1 {
+    tree.insert_at(i, mi(i))
+  }
+  // All 100 consecutive items should merge
+  inspect(tree.size(), content="1")
+  let arr = tree.to_array()
+  inspect(arr[0].start, content="0")
+  inspect(arr[0].count, content="100")
 }

@@ -1,40 +1,14 @@
 ///|
-/// Replace the item at the given span position in this node.
-/// Span change during set_at is not supported in Phase 1a.
-fn[T : @rle.Spanning] OrderNode::set_in_node(
-  self : OrderNode[T],
-  pos : Int,
-  new_item : T,
-) -> T? {
+/// Navigate to the element containing span position `pos`.
+/// Returns FindResult with the element and offset within it.
+fn[T] OrderNode::navigate(self : OrderNode[T], pos : Int) -> FindResult[T]? {
   match self {
-    Leaf(items~, ..) =>
-      items[:].find_by_span(pos, fn(i, _offset) {
-        let old = items[i]
-        // Span-changing replacement not supported in Phase 1a.
-        // Returns None instead of corrupting tree totals.
-        if @rle.Spanning::span(new_item) != @rle.Spanning::span(old) {
-          return None
-        }
-        items[i] = new_item
-        Some(old)
-      })
-    Internal(children~, counts~, ..) =>
-      counts[:].find_by_sum(pos, fn(i, remaining) {
-        children[i].set_in_node(remaining, new_item)
-      })
-  }
-}
-
-///|
-fn[T : @rle.Spanning] OrderNode::navigate(
-  self : OrderNode[T],
-  pos : Int,
-) -> FindResult[T]? {
-  match self {
-    Leaf(items~, ..) =>
-      items[:].find_by_span(pos, fn(i, offset) {
-        Some({ item: items[i], offset })
-      })
+    Leaf(elem~, span~) =>
+      if pos >= 0 && pos < span {
+        Some({ elem, offset: pos })
+      } else {
+        None
+      }
     Internal(children~, counts~, ..) =>
       counts[:].find_by_sum(pos, fn(i, remaining) {
         children[i].navigate(remaining)
