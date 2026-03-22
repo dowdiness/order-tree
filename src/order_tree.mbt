@@ -1,6 +1,6 @@
 ///|
 pub fn[T] OrderTree::new(
-  min_degree? : Int = default_min_degree,
+  min_degree? : Int = DEFAULT_MIN_DEGREE,
 ) -> OrderTree[T] {
   let min_degree = if min_degree < 2 { 2 } else { min_degree }
   { root: None, min_degree, size: 0 }

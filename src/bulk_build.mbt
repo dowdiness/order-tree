@@ -3,7 +3,7 @@
 /// Items are placed in leaf nodes first, then internal nodes are built layer by layer.
 pub fn[T : @rle.Spanning] OrderTree::from_array(
   items : Array[T],
-  min_degree? : Int = default_min_degree,
+  min_degree? : Int = DEFAULT_MIN_DEGREE,
 ) -> OrderTree[T] {
   let t = if min_degree < 2 { 2 } else { min_degree }
   if items.is_empty() {

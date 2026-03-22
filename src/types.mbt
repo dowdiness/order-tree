@@ -15,6 +15,9 @@ pub(all) enum OrderNode[T] {
 } derive(Show, Eq)
 
 ///|
+const DEFAULT_MIN_DEGREE : Int = 10
+
+///|
 /// Order-statistic B-tree: a position-indexed sequence with O(log n) operations.
 /// Items are ordered by insertion position, not by key comparison.
 /// Each internal node caches subtree span counts for fast navigation.
@@ -23,6 +26,3 @@ pub struct OrderTree[T] {
   min_degree : Int
   mut size : Int
 } derive(Show, Eq)
-
-///|
-let default_min_degree : Int = 10
