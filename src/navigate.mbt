@@ -8,7 +8,7 @@ fn[T : @rle.Spanning] OrderNode::set_in_node(
 ) -> T? {
   match self {
     Leaf(items~, ..) =>
-      find_in_leaf(items[:], pos, fn(i, _offset) {
+      items[:].find_by_span(pos, fn(i, _offset) {
         let old = items[i]
         let s = @rle.Spanning::span(old)
         let new_span = @rle.Spanning::span(new_item)
@@ -21,7 +21,7 @@ fn[T : @rle.Spanning] OrderNode::set_in_node(
         Some(old)
       })
     Internal(children~, counts~, ..) =>
-      find_child(counts[:], pos, fn(i, remaining) {
+      counts[:].find_by_sum(pos, fn(i, remaining) {
         children[i].set_in_node(remaining, new_item)
       })
   }
@@ -34,11 +34,11 @@ fn[T : @rle.Spanning] OrderNode::navigate(
 ) -> FindResult[T]? {
   match self {
     Leaf(items~, ..) =>
-      find_in_leaf(items[:], pos, fn(i, offset) {
+      items[:].find_by_span(pos, fn(i, offset) {
         Some({ item: items[i], offset })
       })
     Internal(children~, counts~, ..) =>
-      find_child(counts[:], pos, fn(i, remaining) {
+      counts[:].find_by_sum(pos, fn(i, remaining) {
         children[i].navigate(remaining)
       })
   }

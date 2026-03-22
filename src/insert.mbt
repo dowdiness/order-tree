@@ -81,7 +81,7 @@ fn[T : @rle.Spanning] insert_into_leaf(
   let item_span = @rle.Spanning::span(item)
   // Find insertion index using shared leaf walker
   let insert_idx = match
-    find_in_leaf(items[:], pos, fn(i, _offset) { Some(i) }) {
+    items[:].find_by_span(pos, fn(i, _offset) { Some(i) }) {
     Some(i) => i
     None => items.length()
   }
@@ -116,7 +116,7 @@ fn[T : @rle.Spanning] insert_into_internal(
 ) -> (OrderNode[T], OrderNode[T]?) {
   // Find which child to descend into (inclusive boundary for insert)
   let (child_idx, remaining) = match
-    find_child_inclusive(counts[:counts.length() - 1], pos, fn(i, r) {
+    counts[:counts.length() - 1].find_by_sum_inclusive(pos, fn(i, r) {
       Some((i, r))
     }) {
     Some(pair) => pair

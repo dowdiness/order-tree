@@ -210,7 +210,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
   match self {
     Leaf(items~, total~) => {
       // Find the item at the given position using shared leaf walker
-      let delete_idx = match find_in_leaf(items[:], pos, fn(i, _) { Some(i) }) {
+      let delete_idx = match items[:].find_by_span(pos, fn(i, _) { Some(i) }) {
         Some(i) => i
         None => return (self, None)
       }
@@ -221,7 +221,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
     Internal(children~, counts~, total~) => {
       // Find which child contains the target position
       let (child_idx, _) = match
-        find_child(counts[:counts.length() - 1], pos, fn(i, r) { Some((i, r)) }) {
+        counts[:counts.length() - 1].find_by_sum(pos, fn(i, r) { Some((i, r)) }) {
         Some(pair) => pair
         None => {
           let last = children.length() - 1
@@ -233,7 +233,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
       ensure_min_items(children, counts, child_idx, min_degree)
       // After ensure_min_items, re-find the child (merge may have shifted indices).
       let (new_child_idx, new_remaining) = match
-        find_child(counts[:counts.length() - 1], pos, fn(i, r) { Some((i, r)) }) {
+        counts[:counts.length() - 1].find_by_sum(pos, fn(i, r) { Some((i, r)) }) {
         Some(pair) => pair
         None => {
           let last = children.length() - 1

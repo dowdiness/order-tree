@@ -52,18 +52,17 @@ fn[T] OrderNode::is_full(self : OrderNode[T], min_degree : Int) -> Bool {
 }
 
 // === General tree-walking helpers ===
-// Used by navigate, insert, and delete for position lookup.
+// Local methods on ArrayView. Used by navigate, insert, and delete.
 
 ///|
-/// Walk leaf items by span to find the item at position `pos`.
+/// Walk items by span to find the item at position `pos`.
 /// Calls `f(index, offset_within_item)` when found.
-/// Used by: navigate (get_at/find), insert (find insert index), delete (find delete index).
-fn[T : @rle.Spanning, R] find_in_leaf(
-  items : ArrayView[T],
+fn[T : @rle.Spanning, R] ArrayView::find_by_span(
+  self : ArrayView[T],
   pos : Int,
   f : (Int, Int) -> R?,
 ) -> R? {
-  loop (items, pos, 0) {
+  loop (self, pos, 0) {
     ([], _, _) => None
     ([item, .. rest], remaining, i) => {
       let s = @rle.Spanning::span(item)
@@ -77,16 +76,14 @@ fn[T : @rle.Spanning, R] find_in_leaf(
 }
 
 ///|
-/// Walk internal node counts to find which child contains position `pos`.
-/// Uses strict `<` comparison: position must be within child's span.
-/// Calls `f(child_index, remaining_within_child)` when found.
-/// Used by: navigate (get_at/find), delete (find child to descend into).
-fn[R] find_child(
-  counts : ArrayView[Int],
+/// Walk cumulative sums to find which slot contains position `pos`.
+/// Uses strict `<`: position must be within slot's range.
+fn[R] ArrayView::find_by_sum(
+  self : ArrayView[Int],
   pos : Int,
   f : (Int, Int) -> R?,
 ) -> R? {
-  loop (counts, pos, 0) {
+  loop (self, pos, 0) {
     ([], _, _) => None
     ([count, ..], remaining, i) if remaining < count => f(i, remaining)
     ([count, .. rest], remaining, i) =>
@@ -95,16 +92,14 @@ fn[R] find_child(
 }
 
 ///|
-/// Walk internal node counts to find which child to insert into at position `pos`.
-/// Uses `<=` comparison: position at the boundary goes to the current child.
-/// Calls `f(child_index, remaining_within_child)` when found.
-/// Used by: insert (find child to descend into for insertion).
-fn[R] find_child_inclusive(
-  counts : ArrayView[Int],
+/// Walk cumulative sums to find which slot to insert into at position `pos`.
+/// Uses `<=`: position at boundary goes to current slot.
+fn[R] ArrayView::find_by_sum_inclusive(
+  self : ArrayView[Int],
   pos : Int,
   f : (Int, Int) -> R?,
 ) -> R? {
-  loop (counts, pos, 0) {
+  loop (self, pos, 0) {
     ([], _, _) => None
     ([count, ..], remaining, i) if remaining <= count => f(i, remaining)
     ([count, .. rest], remaining, i) =>
