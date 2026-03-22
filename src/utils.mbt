@@ -50,3 +50,64 @@ fn[T] OrderNode::is_full(self : OrderNode[T], min_degree : Int) -> Bool {
     Internal(children~, ..) => children.length() >= 2 * min_degree
   }
 }
+
+// === General tree-walking helpers ===
+// Used by navigate, insert, and delete for position lookup.
+
+///|
+/// Walk leaf items by span to find the item at position `pos`.
+/// Calls `f(index, offset_within_item)` when found.
+/// Used by: navigate (get_at/find), insert (find insert index), delete (find delete index).
+fn[T : @rle.Spanning, R] find_in_leaf(
+  items : ArrayView[T],
+  pos : Int,
+  f : (Int, Int) -> R?,
+) -> R? {
+  loop (items, pos, 0) {
+    ([], _, _) => None
+    ([item, .. rest], remaining, i) => {
+      let s = @rle.Spanning::span(item)
+      if remaining < s {
+        f(i, remaining)
+      } else {
+        continue (rest, remaining - s, i + 1)
+      }
+    }
+  }
+}
+
+///|
+/// Walk internal node counts to find which child contains position `pos`.
+/// Uses strict `<` comparison: position must be within child's span.
+/// Calls `f(child_index, remaining_within_child)` when found.
+/// Used by: navigate (get_at/find), delete (find child to descend into).
+fn[R] find_child(
+  counts : ArrayView[Int],
+  pos : Int,
+  f : (Int, Int) -> R?,
+) -> R? {
+  loop (counts, pos, 0) {
+    ([], _, _) => None
+    ([count, ..], remaining, i) if remaining < count => f(i, remaining)
+    ([count, .. rest], remaining, i) =>
+      continue (rest, remaining - count, i + 1)
+  }
+}
+
+///|
+/// Walk internal node counts to find which child to insert into at position `pos`.
+/// Uses `<=` comparison: position at the boundary goes to the current child.
+/// Calls `f(child_index, remaining_within_child)` when found.
+/// Used by: insert (find child to descend into for insertion).
+fn[R] find_child_inclusive(
+  counts : ArrayView[Int],
+  pos : Int,
+  f : (Int, Int) -> R?,
+) -> R? {
+  loop (counts, pos, 0) {
+    ([], _, _) => None
+    ([count, ..], remaining, i) if remaining <= count => f(i, remaining)
+    ([count, .. rest], remaining, i) =>
+      continue (rest, remaining - count, i + 1)
+  }
+}

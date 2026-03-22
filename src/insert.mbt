@@ -79,20 +79,11 @@ fn[T : @rle.Spanning] insert_into_leaf(
   min_degree : Int,
 ) -> (OrderNode[T], OrderNode[T]?) {
   let item_span = @rle.Spanning::span(item)
-  // Find insertion index by scanning spans
-  let mut remaining = pos
-  let mut insert_idx = items.length()
-  for i in 0..<items.length() {
-    if remaining <= 0 {
-      insert_idx = i
-      break
-    }
-    let s = @rle.Spanning::span(items[i])
-    if remaining < s {
-      insert_idx = i
-      break
-    }
-    remaining = remaining - s
+  // Find insertion index using shared leaf walker
+  let insert_idx = match
+    find_in_leaf(items[:], pos, fn(i, _offset) { Some(i) }) {
+    Some(i) => i
+    None => items.length()
   }
   // Build new items array with the item inserted
   let new_items : Array[T] = Array::new(capacity=items.length() + 1)
@@ -123,15 +114,18 @@ fn[T : @rle.Spanning] insert_into_internal(
   item : T,
   min_degree : Int,
 ) -> (OrderNode[T], OrderNode[T]?) {
-  // Find which child to descend into
-  let mut remaining = pos
-  let mut child_idx = children.length() - 1
-  for i in 0..<(children.length() - 1) {
-    if remaining <= counts[i] {
-      child_idx = i
-      break
+  // Find which child to descend into (inclusive boundary for insert)
+  let (child_idx, remaining) = match
+    find_child_inclusive(counts[:counts.length() - 1], pos, fn(i, r) {
+      Some((i, r))
+    }) {
+    Some(pair) => pair
+    None => {
+      // Position is past all children except last — use last child
+      let last = children.length() - 1
+      let prior_sum = counts[:last].iter().fold(init=0, fn(a, x) { a + x })
+      (last, pos - prior_sum)
     }
-    remaining = remaining - counts[i]
   }
   // Proactive splitting: if the child is full, split it before descending
   let mut cur_children = children

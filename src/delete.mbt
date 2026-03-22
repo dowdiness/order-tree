@@ -209,19 +209,10 @@ fn[T : @rle.Spanning] OrderNode::delete(
 ) -> (OrderNode[T], T?) {
   match self {
     Leaf(items~, total~) => {
-      // Find the item at the given position
-      let mut remaining = pos
-      let mut delete_idx = -1
-      for i in 0..<items.length() {
-        let s = @rle.Spanning::span(items[i])
-        if remaining < s {
-          delete_idx = i
-          break
-        }
-        remaining = remaining - s
-      }
-      if delete_idx < 0 {
-        return (self, None)
+      // Find the item at the given position using shared leaf walker
+      let delete_idx = match find_in_leaf(items[:], pos, fn(i, _) { Some(i) }) {
+        Some(i) => i
+        None => return (self, None)
       }
       let deleted = items.remove_at(delete_idx)
       let deleted_span = @rle.Spanning::span(deleted)
@@ -229,27 +220,25 @@ fn[T : @rle.Spanning] OrderNode::delete(
     }
     Internal(children~, counts~, total~) => {
       // Find which child contains the target position
-      let mut remaining = pos
-      let mut child_idx = children.length() - 1
-      for i in 0..<(children.length() - 1) {
-        if remaining < counts[i] {
-          child_idx = i
-          break
+      let (child_idx, _) = match
+        find_child(counts[:counts.length() - 1], pos, fn(i, r) { Some((i, r)) }) {
+        Some(pair) => pair
+        None => {
+          let last = children.length() - 1
+          (last, pos - counts[:last].iter().fold(init=0, fn(a, x) { a + x }))
         }
-        remaining = remaining - counts[i]
       }
       // Ensure the child has enough items before descending.
       // This may merge/borrow, changing array layout.
       ensure_min_items(children, counts, child_idx, min_degree)
       // After ensure_min_items, re-find the child (merge may have shifted indices).
-      let mut new_remaining = pos
-      let mut new_child_idx = children.length() - 1
-      for i in 0..<(children.length() - 1) {
-        if new_remaining < counts[i] {
-          new_child_idx = i
-          break
+      let (new_child_idx, new_remaining) = match
+        find_child(counts[:counts.length() - 1], pos, fn(i, r) { Some((i, r)) }) {
+        Some(pair) => pair
+        None => {
+          let last = children.length() - 1
+          (last, pos - counts[:last].iter().fold(init=0, fn(a, x) { a + x }))
         }
-        new_remaining = new_remaining - counts[i]
       }
       let (updated_child, deleted) = children[new_child_idx].delete(
         new_remaining, min_degree,
