@@ -380,3 +380,30 @@ test "index syntax: tree[pos] and tree[pos] = item" {
   inspect(tree[2].map(fn(t) { t.value }), content="Some(99)")
   inspect(tree.span(), content="5")
 }
+
+///|
+test "view operator: tree[start:end]" {
+  let tree : OrderTree[TItem] = OrderTree::new()
+  for i = 0; i < 10; i = i + 1 {
+    tree.insert_at(i, ti(i))
+  }
+  // Full range
+  let all = tree[:]
+  inspect(all.length(), content="10")
+  // Sub-range [2, 5)
+  let sub = tree[2:5]
+  inspect(sub.length(), content="3")
+  inspect(sub[0].value, content="2")
+  inspect(sub[2].value, content="4")
+  // From start
+  let head = tree[:3]
+  inspect(head.length(), content="3")
+  inspect(head[0].value, content="0")
+  // From offset to end
+  let tail = tree[7:]
+  inspect(tail.length(), content="3")
+  inspect(tail[0].value, content="7")
+  // Empty range
+  let empty = tree[5:5]
+  inspect(empty.length(), content="0")
+}

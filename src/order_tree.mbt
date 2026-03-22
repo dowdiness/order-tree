@@ -7,14 +7,14 @@ pub fn[T] OrderTree::new(
 }
 
 ///|
-pub fn[T] OrderTree::is_empty(self : OrderTree[T]) -> Bool {
-  self.root is None
-}
-
-///|
 /// Total leaf entries.
 pub fn[T] OrderTree::size(self : OrderTree[T]) -> Int {
   self.size
+}
+
+///|
+pub impl[T] @rle.HasLength for OrderTree[T] with is_empty(self : OrderTree[T]) -> Bool {
+  self.root is None
 }
 
 ///|
@@ -91,6 +91,38 @@ pub fn[T : @rle.Spanning] OrderTree::op_set(
   item : T,
 ) -> Unit {
   ignore(self.set_at(pos, item))
+}
+
+///|
+/// View operator: `tree[start:end]` returns items in span range [start, end).
+/// O(k + log n) where k = items collected.
+#alias("_[_:_]")
+pub fn[T : @rle.Spanning] OrderTree::view(
+  self : OrderTree[T],
+  start? : Int = 0,
+  end? : Int,
+) -> Array[T] {
+  let total = @rle.Spanning::span(self)
+  let end = match end {
+    Some(e) => e
+    None => total
+  }
+  let result : Array[T] = []
+  if start >= end || start >= total {
+    return result
+  }
+  // Collect items in [start, end) by navigating to each position
+  let mut pos = start
+  while pos < end {
+    match self.get_at(pos) {
+      Some(item) => {
+        result.push(item)
+        pos = pos + @rle.Spanning::span(item)
+      }
+      None => break
+    }
+  }
+  result
 }
 
 ///|
