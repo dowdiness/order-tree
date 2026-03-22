@@ -104,7 +104,7 @@ pub fn[T : @rle.Spanning] OrderTree::op_set(
 
 ///|
 /// View operator: `tree[start:end]` returns items in span range [start, end).
-/// O(k + log n) where k = items collected.
+/// O(k * log n) where k = items collected.
 #alias("_[_:_]")
 pub fn[T : @rle.Spanning] OrderTree::view(
   self : OrderTree[T],

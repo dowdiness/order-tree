@@ -85,22 +85,14 @@ fn[T : @rle.Spanning] insert_into_leaf(
     Some(i) => i
     None => items.length()
   }
-  // Build new items array with the item inserted
-  let new_items : Array[T] = Array::new(capacity=items.length() + 1)
-  for x in items[0:insert_idx] {
-    new_items.push(x)
-  }
-  new_items.push(item)
-  for x in items[insert_idx:] {
-    new_items.push(x)
-  }
+  items.insert_at(insert_idx, item)
   let new_total = total + item_span
   let max_items = 2 * min_degree - 1
-  if new_items.length() > max_items {
-    let (left, right) = split_leaf(new_items)
+  if items.length() > max_items {
+    let (left, right) = split_leaf(items)
     (left, Some(right))
   } else {
-    (Leaf(items=new_items, total=new_total), None)
+    (Leaf(items~, total=new_total), None)
   }
 }
 
@@ -109,7 +101,7 @@ fn[T : @rle.Spanning] insert_into_leaf(
 fn[T : @rle.Spanning] insert_into_internal(
   children : Array[OrderNode[T]],
   counts : Array[Int],
-  _total : Int,
+  total : Int,
   pos : Int,
   item : T,
   min_degree : Int,
@@ -123,8 +115,7 @@ fn[T : @rle.Spanning] insert_into_internal(
     None => {
       // Position is past all children except last — use last child
       let last = children.length() - 1
-      let prior_sum = counts[:last].iter().fold(init=0, fn(a, x) { a + x })
-      (last, pos - prior_sum)
+      (last, pos - (total - counts[last]))
     }
   }
   // Proactive splitting: if the child is full, split it before descending
@@ -160,7 +151,7 @@ fn[T : @rle.Spanning] insert_into_internal(
       // In-place mutation: update the child and count directly
       cur_children[cur_child_idx] = updated_child
       cur_counts[cur_child_idx] = updated_child.total()
-      let new_total = _total + @rle.Spanning::span(item)
+      let new_total = total + @rle.Spanning::span(item)
       (
         Internal(children=cur_children, counts=cur_counts, total=new_total),
         None,
@@ -172,7 +163,7 @@ fn[T : @rle.Spanning] insert_into_internal(
       cur_counts[cur_child_idx] = updated_child.total()
       cur_children.insert_at(cur_child_idx + 1, sibling)
       cur_counts.insert_at(cur_child_idx + 1, sibling.total())
-      let new_total = _total + @rle.Spanning::span(item)
+      let new_total = total + @rle.Spanning::span(item)
       let new_node = Internal(
         children=cur_children,
         counts=cur_counts,

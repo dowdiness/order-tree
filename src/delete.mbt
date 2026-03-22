@@ -106,7 +106,7 @@ fn[T : @rle.Spanning] borrow_from_right(
 ///|
 /// Merge child at idx with child at idx+1 (the right sibling).
 /// The right sibling is removed from the parent arrays.
-fn[T : @rle.Spanning] merge_children(
+fn[T] merge_children(
   children : Array[OrderNode[T]],
   counts : Array[Int],
   idx : Int,
@@ -210,7 +210,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
   match self {
     Leaf(items~, total~) => {
       // Find the item at the given position using shared leaf walker
-      let delete_idx = match items[:].find_by_span(pos, fn(i, _) { Some(i) }) {
+      let delete_idx = match items[:].find_by_span(pos, (i, _) => Some(i)) {
         Some(i) => i
         None => return (self, None)
       }
@@ -225,7 +225,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
         Some(pair) => pair
         None => {
           let last = children.length() - 1
-          (last, pos - counts[:last].iter().fold(init=0, fn(a, x) { a + x }))
+          (last, pos - (total - counts[last]))
         }
       }
       // Ensure the child has enough items before descending.
@@ -237,7 +237,7 @@ fn[T : @rle.Spanning] OrderNode::delete(
         Some(pair) => pair
         None => {
           let last = children.length() - 1
-          (last, pos - counts[:last].iter().fold(init=0, fn(a, x) { a + x }))
+          (last, pos - (total - counts[last]))
         }
       }
       let (updated_child, deleted) = children[new_child_idx].delete(
