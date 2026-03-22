@@ -599,6 +599,22 @@ test "view slices at boundaries" {
   inspect(v[0].count, content="4")
 }
 
+///|
+test "same-run delete_range with mergeable type" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 10)) // [0..10)
+  tree.delete_range(3, 7) // Delete positions 3-6 → [0..3) and [7..10)
+  inspect(@rle.Spanning::span(tree), content="6")
+  // First element should be [0..3)
+  let fr0 = tree.find(0).unwrap()
+  inspect(fr0.elem.start, content="0")
+  inspect(fr0.elem.count, content="3")
+  // Second element should be [7..10)
+  let fr3 = tree.find(3).unwrap()
+  inspect(fr3.elem.start, content="7")
+  inspect(fr3.elem.count, content="3")
+}
+
 // ====================================================================
 // RLE round-trip tests
 // ====================================================================
