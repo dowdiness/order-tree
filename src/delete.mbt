@@ -158,17 +158,28 @@ fn[T : @rle.Spanning] merge_children(
 }
 
 ///|
-/// Returns the number of items (for leaf) or children (for internal) in a node.
-fn[T] node_key_count(node : OrderNode[T]) -> Int {
-  match node {
-    Leaf(items~, ..) => items.length()
-    Internal(children~, ..) => children.length()
+/// Whether this node needs rebalancing before a delete descends into it.
+/// Leaf: at or below min occupancy (min_degree - 1 items).
+/// Internal: at or below min occupancy (min_degree children).
+fn[T] OrderNode::needs_rebalance(self : OrderNode[T], min_degree : Int) -> Bool {
+  match self {
+    Leaf(items~, ..) => items.length() <= min_degree - 1
+    Internal(children~, ..) => children.length() <= min_degree
   }
 }
 
 ///|
-/// Ensure the child at idx has at least min_degree items (for leaf)
-/// or min_degree children (for internal).
+/// Whether this node has enough entries to lend one to a sibling.
+/// Must have strictly MORE than the minimum after lending.
+fn[T] OrderNode::can_lend(self : OrderNode[T], min_degree : Int) -> Bool {
+  match self {
+    Leaf(items~, ..) => items.length() > min_degree - 1
+    Internal(children~, ..) => children.length() > min_degree
+  }
+}
+
+///|
+/// Ensure the child at idx has enough entries that a delete won't cause underflow.
 /// If not, borrow from a sibling or merge.
 fn[T : @rle.Spanning] ensure_min_items(
   children : Array[OrderNode[T]],
@@ -176,46 +187,18 @@ fn[T : @rle.Spanning] ensure_min_items(
   idx : Int,
   min_degree : Int,
 ) -> Unit {
-  let child = children[idx]
-  // Proactive rebalancing thresholds differ for leaf vs internal:
-  // - Leaf min occupancy: min_degree - 1 items. Fix when at or below minimum.
-  // - Internal min occupancy: min_degree children. Fix when at or below minimum.
-  let (needs_fix, can_lend_threshold) = match child {
-    Leaf(..) =>
-      (
-        match child {
-          Leaf(items~, ..) => items.length() <= min_degree - 1
-          _ => false
-        },
-        min_degree - 1,
-      )
-    Internal(..) =>
-      (
-        match child {
-          Internal(children=ch, ..) => ch.length() <= min_degree
-          _ => false
-        },
-        min_degree,
-      )
-  }
-  if not(needs_fix) {
+  if not(children[idx].needs_rebalance(min_degree)) {
     return
   }
-  // Try borrow from left sibling (must have MORE than minimum to lend)
-  if idx > 0 {
-    let left_count = node_key_count(children[idx - 1])
-    if left_count > can_lend_threshold {
-      borrow_from_left(children, counts, idx)
-      return
-    }
+  // Try borrow from left sibling
+  if idx > 0 && children[idx - 1].can_lend(min_degree) {
+    borrow_from_left(children, counts, idx)
+    return
   }
   // Try borrow from right sibling
-  if idx < children.length() - 1 {
-    let right_count = node_key_count(children[idx + 1])
-    if right_count > can_lend_threshold {
-      borrow_from_right(children, counts, idx)
-      return
-    }
+  if idx < children.length() - 1 && children[idx + 1].can_lend(min_degree) {
+    borrow_from_right(children, counts, idx)
+    return
   }
   // Merge: prefer merging with left sibling if available
   if idx > 0 {
