@@ -3,7 +3,7 @@ import {
 }
 
 import {
-  "moonbitlang/core/bench",
+  "moonbitlang/core/bench" @bench,
   "moonbitlang/core/quickcheck",
   "moonbitlang/quickcheck" @qc,
 } for "test"
