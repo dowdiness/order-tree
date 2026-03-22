@@ -52,47 +52,6 @@ fn[T] split_internal(
 }
 
 ///|
-/// Compute the total span of an array of items.
-fn[T : @rle.Spanning] compute_items_span(items : Array[T]) -> Int {
-  let mut total = 0
-  for i = 0; i < items.length(); i = i + 1 {
-    total = total + @rle.Spanning::span(items[i])
-  }
-  total
-}
-
-///|
-/// Sum all elements of an Int array.
-fn sum_array(arr : Array[Int]) -> Int {
-  let mut total = 0
-  for i = 0; i < arr.length(); i = i + 1 {
-    total = total + arr[i]
-  }
-  total
-}
-
-///|
-/// Get the total span of a node.
-fn[T] node_total(node : OrderNode[T]) -> Int {
-  match node {
-    Leaf(total~, ..) => total
-    Internal(total~, ..) => total
-  }
-}
-
-///|
-/// Check if a node is full.
-/// Leaves: max items = 2*t - 1.
-/// Internal: max children = 2*t.
-fn[T] is_node_full(node : OrderNode[T], min_degree : Int) -> Bool {
-  let max_items = 2 * min_degree - 1
-  match node {
-    Leaf(items~, ..) => items.length() >= max_items
-    Internal(children~, ..) => children.length() >= 2 * min_degree
-  }
-}
-
-///|
 /// Insert an item at a position in a node.
 /// Returns (updated_node, optional_new_right_sibling).
 /// If a split was needed, the new right sibling is returned.
@@ -186,25 +145,11 @@ fn[T : @rle.Spanning] insert_into_internal(
       Internal(children~, counts~, ..) => split_internal(children, counts)
     }
     let left_total = node_total(left)
-    // Build new children and counts arrays with the split
-    let new_children : Array[OrderNode[T]] = Array::new(
-      capacity=cur_children.length() + 1,
-    )
-    let new_counts : Array[Int] = Array::new(capacity=cur_counts.length() + 1)
-    for i = 0; i < cur_child_idx; i = i + 1 {
-      new_children.push(cur_children[i])
-      new_counts.push(cur_counts[i])
-    }
-    new_children.push(left)
-    new_counts.push(node_total(left))
-    new_children.push(right)
-    new_counts.push(node_total(right))
-    for i = cur_child_idx + 1; i < cur_children.length(); i = i + 1 {
-      new_children.push(cur_children[i])
-      new_counts.push(cur_counts[i])
-    }
-    cur_children = new_children
-    cur_counts = new_counts
+    // Use array_insert for proactive split instead of building new arrays
+    cur_children[cur_child_idx] = left
+    cur_counts[cur_child_idx] = left_total
+    array_insert(cur_children, cur_child_idx + 1, right)
+    array_insert(cur_counts, cur_child_idx + 1, node_total(right))
     // Decide which of the two split children to descend into
     if cur_remaining > left_total {
       cur_remaining = cur_remaining - left_total
@@ -218,52 +163,30 @@ fn[T : @rle.Spanning] insert_into_internal(
   // Build result node
   match maybe_sibling {
     None => {
-      let new_children : Array[OrderNode[T]] = Array::new(
-        capacity=cur_children.length(),
-      )
-      let new_counts : Array[Int] = Array::new(capacity=cur_counts.length())
-      for i = 0; i < cur_children.length(); i = i + 1 {
-        if i == cur_child_idx {
-          new_children.push(updated_child)
-          new_counts.push(node_total(updated_child))
-        } else {
-          new_children.push(cur_children[i])
-          new_counts.push(cur_counts[i])
-        }
-      }
-      let new_total = sum_array(new_counts)
+      // In-place mutation: update the child and count directly
+      cur_children[cur_child_idx] = updated_child
+      cur_counts[cur_child_idx] = node_total(updated_child)
+      let new_total = _total + @rle.Spanning::span(item)
       (
-        Internal(children=new_children, counts=new_counts, total=new_total),
+        Internal(children=cur_children, counts=cur_counts, total=new_total),
         None,
       )
     }
     Some(sibling) => {
       // Child split: replace child with updated + insert sibling after it
-      let new_children : Array[OrderNode[T]] = Array::new(
-        capacity=cur_children.length() + 1,
-      )
-      let new_counts : Array[Int] = Array::new(capacity=cur_counts.length() + 1)
-      for i = 0; i < cur_children.length(); i = i + 1 {
-        if i == cur_child_idx {
-          new_children.push(updated_child)
-          new_counts.push(node_total(updated_child))
-          new_children.push(sibling)
-          new_counts.push(node_total(sibling))
-        } else {
-          new_children.push(cur_children[i])
-          new_counts.push(cur_counts[i])
-        }
-      }
-      let new_total = sum_array(new_counts)
+      cur_children[cur_child_idx] = updated_child
+      cur_counts[cur_child_idx] = node_total(updated_child)
+      array_insert(cur_children, cur_child_idx + 1, sibling)
+      array_insert(cur_counts, cur_child_idx + 1, node_total(sibling))
+      let new_total = _total + @rle.Spanning::span(item)
       let new_node = Internal(
-        children=new_children,
-        counts=new_counts,
+        children=cur_children,
+        counts=cur_counts,
         total=new_total,
       )
       // Check if this internal node is now overfull
-      if new_children.length() > 2 * min_degree {
-        let (left, right) = split_internal(new_children, new_counts)
-        // Need to recompute since split_internal already computes totals
+      if cur_children.length() > 2 * min_degree {
+        let (left, right) = split_internal(cur_children, cur_counts)
         (left, Some(right))
       } else {
         (new_node, None)

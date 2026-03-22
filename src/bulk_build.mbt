@@ -5,7 +5,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
   items : Array[T],
   min_degree? : Int = default_min_degree,
 ) -> OrderTree[T] {
-  let t = min_degree
+  let t = if min_degree < 2 { 2 } else { min_degree }
   if items.is_empty() {
     return OrderTree::new(min_degree=t)
   }
@@ -133,23 +133,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
     current_layer = next_layer
   }
 
-  // Count total items by walking the tree (sum of leaf item counts)
+  // Item count is known from input — no tree walk needed
   let root_node = current_layer[0]
-  let item_count = count_items(root_node)
-  { root: Some(root_node), min_degree: t, size: item_count }
-}
-
-///|
-/// Count the total number of items in a node (not spans, but item count).
-fn[T] count_items(node : OrderNode[T]) -> Int {
-  match node {
-    Leaf(items~, ..) => items.length()
-    Internal(children~, ..) => {
-      let mut total = 0
-      for i = 0; i < children.length(); i = i + 1 {
-        total = total + count_items(children[i])
-      }
-      total
-    }
-  }
+  { root: Some(root_node), min_degree: t, size: n }
 }

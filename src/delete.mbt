@@ -1,27 +1,4 @@
 ///|
-/// Remove an element at the given index from an array, returning the removed element.
-/// Shifts subsequent elements left.
-fn[T] array_remove(arr : Array[T], idx : Int) -> T {
-  let item = arr[idx]
-  for i = idx; i < arr.length() - 1; i = i + 1 {
-    arr[i] = arr[i + 1]
-  }
-  let _ = arr.pop()
-  item
-}
-
-///|
-/// Insert an element at the given index in an array.
-/// Shifts subsequent elements right.
-fn[T] array_insert(arr : Array[T], idx : Int, item : T) -> Unit {
-  arr.push(item) // extend length by 1
-  for i = arr.length() - 1; i > idx; i = i - 1 {
-    arr[i] = arr[i - 1]
-  }
-  arr[idx] = item
-}
-
-///|
 /// Borrow the last item from the left sibling and prepend it to child at idx.
 /// For leaves: move last item from left to front of target.
 /// For internal nodes: move last child from left to front of target.
@@ -33,28 +10,31 @@ fn[T : @rle.Spanning] borrow_from_left(
   let left = children[idx - 1]
   let target = children[idx]
   match (left, target) {
-    (Leaf(items=left_items, ..), Leaf(items=target_items, ..)) => {
+    (
+      Leaf(items=left_items, total=left_total),
+      Leaf(items=target_items, total=target_total),
+    ) => {
       let borrowed = array_remove(left_items, left_items.length() - 1)
       let borrowed_span = @rle.Spanning::span(borrowed)
       array_insert(target_items, 0, borrowed)
-      let new_left_total = compute_items_span(left_items)
-      let new_target_total = compute_items_span(target_items)
+      let new_left_total = left_total - borrowed_span
+      let new_target_total = target_total + borrowed_span
       children[idx - 1] = Leaf(items=left_items, total=new_left_total)
       children[idx] = Leaf(items=target_items, total=new_target_total)
       counts[idx - 1] = new_left_total
       counts[idx] = new_target_total
     }
     (
-      Internal(children=left_ch, counts=left_cn, ..),
-      Internal(children=target_ch, counts=target_cn, ..),
+      Internal(children=left_ch, counts=left_cn, total=left_total),
+      Internal(children=target_ch, counts=target_cn, total=target_total),
     ) => {
       let last_idx = left_ch.length() - 1
       let borrowed_child = array_remove(left_ch, last_idx)
       let borrowed_count = array_remove(left_cn, last_idx)
       array_insert(target_ch, 0, borrowed_child)
       array_insert(target_cn, 0, borrowed_count)
-      let new_left_total = sum_array(left_cn)
-      let new_target_total = sum_array(target_cn)
+      let new_left_total = left_total - borrowed_count
+      let new_target_total = target_total + borrowed_count
       children[idx - 1] = Internal(
         children=left_ch,
         counts=left_cn,
@@ -82,26 +62,30 @@ fn[T : @rle.Spanning] borrow_from_right(
   let target = children[idx]
   let right = children[idx + 1]
   match (target, right) {
-    (Leaf(items=target_items, ..), Leaf(items=right_items, ..)) => {
+    (
+      Leaf(items=target_items, total=target_total),
+      Leaf(items=right_items, total=right_total),
+    ) => {
       let borrowed = array_remove(right_items, 0)
+      let borrowed_span = @rle.Spanning::span(borrowed)
       target_items.push(borrowed)
-      let new_target_total = compute_items_span(target_items)
-      let new_right_total = compute_items_span(right_items)
+      let new_target_total = target_total + borrowed_span
+      let new_right_total = right_total - borrowed_span
       children[idx] = Leaf(items=target_items, total=new_target_total)
       children[idx + 1] = Leaf(items=right_items, total=new_right_total)
       counts[idx] = new_target_total
       counts[idx + 1] = new_right_total
     }
     (
-      Internal(children=target_ch, counts=target_cn, ..),
-      Internal(children=right_ch, counts=right_cn, ..),
+      Internal(children=target_ch, counts=target_cn, total=target_total),
+      Internal(children=right_ch, counts=right_cn, total=right_total),
     ) => {
       let borrowed_child = array_remove(right_ch, 0)
       let borrowed_count = array_remove(right_cn, 0)
       target_ch.push(borrowed_child)
       target_cn.push(borrowed_count)
-      let new_target_total = sum_array(target_cn)
-      let new_right_total = sum_array(right_cn)
+      let new_target_total = target_total + borrowed_count
+      let new_right_total = right_total - borrowed_count
       children[idx] = Internal(
         children=target_ch,
         counts=target_cn,
