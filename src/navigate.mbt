@@ -8,7 +8,7 @@ fn[T : @rle.Spanning] OrderNode::set_in_node(
 ) -> T? {
   match self {
     Leaf(items~, ..) =>
-      find_in_leaf(items, pos, fn(i, _offset) {
+      find_in_leaf(items[:], pos, fn(i, _offset) {
         let old = items[i]
         let s = @rle.Spanning::span(old)
         let new_span = @rle.Spanning::span(new_item)
@@ -21,7 +21,7 @@ fn[T : @rle.Spanning] OrderNode::set_in_node(
         Some(old)
       })
     Internal(children~, counts~, ..) =>
-      find_child(counts, pos, fn(i, remaining) {
+      find_child(counts[:], pos, fn(i, remaining) {
         children[i].set_in_node(remaining, new_item)
       })
   }
@@ -34,11 +34,11 @@ fn[T : @rle.Spanning] OrderNode::navigate(
 ) -> FindResult[T]? {
   match self {
     Leaf(items~, ..) =>
-      find_in_leaf(items, pos, fn(i, offset) {
+      find_in_leaf(items[:], pos, fn(i, offset) {
         Some({ item: items[i], offset })
       })
     Internal(children~, counts~, ..) =>
-      find_child(counts, pos, fn(i, remaining) {
+      find_child(counts[:], pos, fn(i, remaining) {
         children[i].navigate(remaining)
       })
   }
@@ -46,20 +46,20 @@ fn[T : @rle.Spanning] OrderNode::navigate(
 
 ///|
 /// Walk leaf items by span to find the item at position `pos`.
-/// Calls `f(index, offset_within_item)` when found.
+/// Pattern-matches on ArrayView to destructure head + tail.
 fn[T : @rle.Spanning, R] find_in_leaf(
-  items : Array[T],
+  items : ArrayView[T],
   pos : Int,
   f : (Int, Int) -> R?,
 ) -> R? {
-  loop (0, pos) {
-    (i, _) if i >= items.length() => None
-    (i, remaining) => {
-      let s = @rle.Spanning::span(items[i])
+  loop (items, pos, 0) {
+    ([], _, _) => None
+    ([item, .. rest], remaining, i) => {
+      let s = @rle.Spanning::span(item)
       if remaining < s {
         f(i, remaining)
       } else {
-        continue (i + 1, remaining - s)
+        continue (rest, remaining - s, i + 1)
       }
     }
   }
@@ -67,11 +67,16 @@ fn[T : @rle.Spanning, R] find_in_leaf(
 
 ///|
 /// Walk internal node counts to find which child contains position `pos`.
-/// Calls `f(child_index, remaining_within_child)` when found.
-fn[R] find_child(counts : Array[Int], pos : Int, f : (Int, Int) -> R?) -> R? {
-  loop (0, pos) {
-    (i, _) if i >= counts.length() => None
-    (i, remaining) if remaining < counts[i] => f(i, remaining)
-    (i, remaining) => continue (i + 1, remaining - counts[i])
+/// Pattern-matches on ArrayView for clean destructuring.
+fn[R] find_child(
+  counts : ArrayView[Int],
+  pos : Int,
+  f : (Int, Int) -> R?,
+) -> R? {
+  loop (counts, pos, 0) {
+    ([], _, _) => None
+    ([count, ..], remaining, i) if remaining < count => f(i, remaining)
+    ([count, .. rest], remaining, i) =>
+      continue (rest, remaining - count, i + 1)
   }
 }
