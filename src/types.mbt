@@ -1,16 +1,16 @@
 ///|
 /// Result of a position lookup in the tree.
 pub struct FindResult[T] {
-  item : T
+  elem : T
   offset : Int
 } derive(Show, Eq)
 
 ///|
 /// A node in the order-statistic B-tree.
-/// Leaf nodes store items directly.
+/// Leaf nodes store a single element with cached span.
 /// Internal nodes store children with per-child span counts.
 pub(all) enum OrderNode[T] {
-  Leaf(items~ : Array[T], total~ : Int)
+  Leaf(elem~ : T, span~ : Int)
   Internal(children~ : Array[OrderNode[T]], counts~ : Array[Int], total~ : Int)
 } derive(Show, Eq)
 

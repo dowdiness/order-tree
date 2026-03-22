@@ -1,27 +1,4 @@
 ///|
-/// Split a full leaf into two halves.
-/// Returns (left, right) where left gets items[0..mid] and right gets items[mid..].
-fn[T : @rle.Spanning] split_leaf(
-  items : Array[T],
-) -> (OrderNode[T], OrderNode[T]) {
-  let mid = items.length() / 2
-  let left_items : Array[T] = Array::new(capacity=mid)
-  for item in items[0:mid] {
-    left_items.push(item)
-  }
-  let right_items : Array[T] = Array::new(capacity=items.length() - mid)
-  for item in items[mid:] {
-    right_items.push(item)
-  }
-  let left_total = left_items.total_span()
-  let right_total = right_items.total_span()
-  (
-    Leaf(items=left_items, total=left_total),
-    Leaf(items=right_items, total=right_total),
-  )
-}
-
-///|
 /// Split a full internal node into two halves.
 /// Returns (left, right) where each gets half the children and counts.
 fn[T] split_internal(
@@ -52,60 +29,75 @@ fn[T] split_internal(
 }
 
 ///|
-/// Insert an item at a position in a node.
-/// Returns (updated_node, optional_new_right_sibling).
-/// If a split was needed, the new right sibling is returned.
-fn[T : @rle.Spanning] OrderNode::insert(
-  self : OrderNode[T],
-  pos : Int,
-  item : T,
-  min_degree : Int,
-) -> (OrderNode[T], OrderNode[T]?) {
-  match self {
-    Leaf(items~, total~) =>
-      insert_into_leaf(items, total, pos, item, min_degree)
-    Internal(children~, counts~, total~) =>
-      insert_into_internal(children, counts, total, pos, item, min_degree)
+/// Try to merge leaf at `idx` with its right neighbor leaf at `idx+1`.
+/// Returns true if merge happened.
+fn[T : @rle.Spanning + @rle.Mergeable] try_merge_right(
+  children : Array[OrderNode[T]],
+  counts : Array[Int],
+  idx : Int,
+) -> Bool {
+  if idx + 1 >= children.length() {
+    return false
+  }
+  match (children[idx], children[idx + 1]) {
+    (Leaf(elem=left_elem, ..), Leaf(elem=right_elem, ..)) =>
+      if @rle.Mergeable::can_merge(left_elem, right_elem) {
+        let merged = @rle.Mergeable::merge(left_elem, right_elem)
+        let merged_span = @rle.Spanning::span(merged)
+        children[idx] = Leaf(elem=merged, span=merged_span)
+        counts[idx] = merged_span
+        let _ = children.remove_at(idx + 1)
+        let _ = counts.remove_at(idx + 1)
+        true
+      } else {
+        false
+      }
+    _ => false
   }
 }
 
 ///|
-/// Insert into a leaf node.
-fn[T : @rle.Spanning] insert_into_leaf(
-  items : Array[T],
-  total : Int,
+/// Insert an element at a position in an internal node.
+/// Returns (updated_node, optional_new_right_sibling, leaf_delta).
+/// leaf_delta: net change in leaf count (+1 = new leaf, 0 = merged into existing, +2 = mid-run split + new).
+fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderNode::insert(
+  self : OrderNode[T],
   pos : Int,
-  item : T,
+  elem : T,
   min_degree : Int,
-) -> (OrderNode[T], OrderNode[T]?) {
-  let item_span = @rle.Spanning::span(item)
-  // Find insertion index using shared leaf walker
-  let insert_idx = match
-    items[:].find_by_span(pos, fn(i, _offset) { Some(i) }) {
-    Some(i) => i
-    None => items.length()
-  }
-  items.insert_at(insert_idx, item)
-  let new_total = total + item_span
-  let max_items = 2 * min_degree - 1
-  if items.length() > max_items {
-    let (left, right) = split_leaf(items)
-    (left, Some(right))
-  } else {
-    (Leaf(items~, total=new_total), None)
+) -> (OrderNode[T], OrderNode[T]?, Int) {
+  match self {
+    Leaf(..) =>
+      abort("OrderNode::insert called on Leaf — should be handled by parent")
+    Internal(children~, counts~, total~) => {
+      let old_child_count = children.length()
+      let (result, sibling) = insert_into_internal(
+        children, counts, total, pos, elem, min_degree,
+      )
+      // Compute leaf_delta from child count change at this level
+      let new_child_count = match (result, sibling) {
+        (Internal(children=ch1, ..), Some(Internal(children=ch2, ..))) =>
+          ch1.length() + ch2.length()
+        (Internal(children=ch, ..), None) => ch.length()
+        _ => old_child_count
+      }
+      let leaf_delta = new_child_count - old_child_count
+      (result, sibling, leaf_delta)
+    }
   }
 }
 
 ///|
 /// Insert into an internal node.
-fn[T : @rle.Spanning] insert_into_internal(
+fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] insert_into_internal(
   children : Array[OrderNode[T]],
   counts : Array[Int],
   total : Int,
   pos : Int,
-  item : T,
+  elem : T,
   min_degree : Int,
 ) -> (OrderNode[T], OrderNode[T]?) {
+  let elem_span = @rle.Spanning::span(elem)
   // Find which child to descend into (inclusive boundary for insert)
   let (child_idx, remaining) = match
     counts[:counts.length() - 1].find_by_sum_inclusive(pos, fn(i, r) {
@@ -118,77 +110,199 @@ fn[T : @rle.Spanning] insert_into_internal(
       (last, pos - (total - counts[last]))
     }
   }
-  // Proactive splitting: if the child is full, split it before descending
-  let mut cur_children = children
-  let mut cur_counts = counts
-  let mut cur_child_idx = child_idx
-  let mut cur_remaining = remaining
-  if cur_children[cur_child_idx].is_full(min_degree) {
-    let child = cur_children[cur_child_idx]
-    let (left, right) = match child {
-      Leaf(items~, ..) => split_leaf(items)
-      Internal(children~, counts~, ..) => split_internal(children, counts)
-    }
-    let left_total = left.total()
-    // Use array_insert for proactive split instead of building new arrays
-    cur_children[cur_child_idx] = left
-    cur_counts[cur_child_idx] = left_total
-    cur_children.insert_at(cur_child_idx + 1, right)
-    cur_counts.insert_at(cur_child_idx + 1, right.total())
-    // Decide which of the two split children to descend into
-    if cur_remaining > left_total {
-      cur_remaining = cur_remaining - left_total
-      cur_child_idx = cur_child_idx + 1
-    }
-  }
-  // Recurse into the selected child
-  let (updated_child, maybe_sibling) = cur_children[cur_child_idx].insert(
-    cur_remaining, item, min_degree,
-  )
-  // Build result node
-  match maybe_sibling {
-    None => {
-      // In-place mutation: update the child and count directly
-      cur_children[cur_child_idx] = updated_child
-      cur_counts[cur_child_idx] = updated_child.total()
-      let new_total = total + @rle.Spanning::span(item)
-      (
-        Internal(children=cur_children, counts=cur_counts, total=new_total),
-        None,
-      )
-    }
-    Some(sibling) => {
-      // Child split: replace child with updated + insert sibling after it
-      cur_children[cur_child_idx] = updated_child
-      cur_counts[cur_child_idx] = updated_child.total()
-      cur_children.insert_at(cur_child_idx + 1, sibling)
-      cur_counts.insert_at(cur_child_idx + 1, sibling.total())
-      let new_total = total + @rle.Spanning::span(item)
-      let new_node = Internal(
-        children=cur_children,
-        counts=cur_counts,
-        total=new_total,
-      )
-      // Check if this internal node is now overfull
-      if cur_children.length() > 2 * min_degree {
-        let (left, right) = split_internal(cur_children, cur_counts)
-        (left, Some(right))
+  match children[child_idx] {
+    Leaf(elem=existing, span=existing_span) => {
+      // Target is a leaf — handle insert at this level
+      if remaining == 0 {
+        // Insert before this leaf: try merge with left neighbor
+        if child_idx > 0 {
+          match children[child_idx - 1] {
+            Leaf(elem=left_elem, ..) =>
+              if @rle.Mergeable::can_merge(left_elem, elem) {
+                let merged = @rle.Mergeable::merge(left_elem, elem)
+                let merged_span = @rle.Spanning::span(merged)
+                children[child_idx - 1] = Leaf(elem=merged, span=merged_span)
+                counts[child_idx - 1] = merged_span
+                // Try merge the updated left with current
+                let _ = try_merge_right(children, counts, child_idx - 1)
+                let new_total = total + elem_span
+                return (
+                  Internal(children~, counts~, total=new_total),
+                  None,
+                )
+              }
+            _ => ()
+          }
+        }
+        // Try merge with current leaf
+        if @rle.Mergeable::can_merge(elem, existing) {
+          let merged = @rle.Mergeable::merge(elem, existing)
+          let merged_span = @rle.Spanning::span(merged)
+          children[child_idx] = Leaf(elem=merged, span=merged_span)
+          counts[child_idx] = merged_span
+          let new_total = total + elem_span
+          return (Internal(children~, counts~, total=new_total), None)
+        }
+        // No merge — insert new leaf before current
+        let new_leaf = Leaf(elem~, span=elem_span)
+        children.insert_at(child_idx, new_leaf)
+        counts.insert_at(child_idx, elem_span)
+        let new_total = total + elem_span
+        if children.length() > 2 * min_degree {
+          let (left, right) = split_internal(children, counts)
+          (left, Some(right))
+        } else {
+          (Internal(children~, counts~, total=new_total), None)
+        }
+      } else if remaining == existing_span {
+        // Insert after this leaf: try merge with current
+        if @rle.Mergeable::can_merge(existing, elem) {
+          let merged = @rle.Mergeable::merge(existing, elem)
+          let merged_span = @rle.Spanning::span(merged)
+          children[child_idx] = Leaf(elem=merged, span=merged_span)
+          counts[child_idx] = merged_span
+          // Try merge with right neighbor
+          let _ = try_merge_right(children, counts, child_idx)
+          let new_total = total + elem_span
+          return (Internal(children~, counts~, total=new_total), None)
+        }
+        // Try merge with right neighbor
+        if child_idx + 1 < children.length() {
+          match children[child_idx + 1] {
+            Leaf(elem=right_elem, ..) =>
+              if @rle.Mergeable::can_merge(elem, right_elem) {
+                let merged = @rle.Mergeable::merge(elem, right_elem)
+                let merged_span = @rle.Spanning::span(merged)
+                children[child_idx + 1] = Leaf(elem=merged, span=merged_span)
+                counts[child_idx + 1] = merged_span
+                let new_total = total + elem_span
+                return (
+                  Internal(children~, counts~, total=new_total),
+                  None,
+                )
+              }
+            _ => ()
+          }
+        }
+        // No merge — insert new leaf after current
+        let new_leaf = Leaf(elem~, span=elem_span)
+        children.insert_at(child_idx + 1, new_leaf)
+        counts.insert_at(child_idx + 1, elem_span)
+        let new_total = total + elem_span
+        if children.length() > 2 * min_degree {
+          let (left, right) = split_internal(children, counts)
+          (left, Some(right))
+        } else {
+          (Internal(children~, counts~, total=new_total), None)
+        }
       } else {
-        (new_node, None)
+        // Mid-run insert: split existing element
+        let left_part = must_slice(existing, start=0, end=remaining)
+        let right_part = must_slice(existing, start=remaining, end=existing_span)
+        let left_span = @rle.Spanning::span(left_part)
+        let right_span = @rle.Spanning::span(right_part)
+        // Try merge left_part with elem
+        let mut new_leaves : Array[OrderNode[T]] = []
+        let mut new_counts : Array[Int] = []
+        let mut current = left_part
+        let mut current_span = left_span
+        if @rle.Mergeable::can_merge(current, elem) {
+          current = @rle.Mergeable::merge(current, elem)
+          current_span = @rle.Spanning::span(current)
+        } else {
+          new_leaves.push(Leaf(elem=current, span=current_span))
+          new_counts.push(current_span)
+          current = elem
+          current_span = elem_span
+        }
+        // Try merge current with right_part
+        if @rle.Mergeable::can_merge(current, right_part) {
+          current = @rle.Mergeable::merge(current, right_part)
+          current_span = @rle.Spanning::span(current)
+          new_leaves.push(Leaf(elem=current, span=current_span))
+          new_counts.push(current_span)
+        } else {
+          new_leaves.push(Leaf(elem=current, span=current_span))
+          new_counts.push(current_span)
+          new_leaves.push(Leaf(elem=right_part, span=right_span))
+          new_counts.push(right_span)
+        }
+        // Replace the original leaf with the new leaves
+        let _ = children.remove_at(child_idx)
+        let _ = counts.remove_at(child_idx)
+        for i = new_leaves.length() - 1; i >= 0; i = i - 1 {
+          children.insert_at(child_idx, new_leaves[i])
+          counts.insert_at(child_idx, new_counts[i])
+        }
+        let new_total = total + elem_span
+        if children.length() > 2 * min_degree {
+          let (left, right) = split_internal(children, counts)
+          (left, Some(right))
+        } else {
+          (Internal(children~, counts~, total=new_total), None)
+        }
+      }
+    }
+    Internal(..) => {
+      // Target is an internal node — proactive split and recurse
+      let mut cur_child_idx = child_idx
+      let mut cur_remaining = remaining
+      if children[cur_child_idx].is_full(min_degree) {
+        let child = children[cur_child_idx]
+        match child {
+          Internal(children=ch, counts=cn, ..) => {
+            let (left, right) = split_internal(ch, cn)
+            let left_total = left.total()
+            children[cur_child_idx] = left
+            counts[cur_child_idx] = left_total
+            children.insert_at(cur_child_idx + 1, right)
+            counts.insert_at(cur_child_idx + 1, right.total())
+            if cur_remaining > left_total {
+              cur_remaining = cur_remaining - left_total
+              cur_child_idx = cur_child_idx + 1
+            }
+          }
+          Leaf(..) => () // Leaves can't be full
+        }
+      }
+      let (updated_child, maybe_sibling, _leaf_delta) = children[cur_child_idx].insert(
+        cur_remaining, elem, min_degree,
+      )
+      match maybe_sibling {
+        None => {
+          children[cur_child_idx] = updated_child
+          counts[cur_child_idx] = updated_child.total()
+          let new_total = total + elem_span
+          (Internal(children~, counts~, total=new_total), None)
+        }
+        Some(sibling) => {
+          children[cur_child_idx] = updated_child
+          counts[cur_child_idx] = updated_child.total()
+          children.insert_at(cur_child_idx + 1, sibling)
+          counts.insert_at(cur_child_idx + 1, sibling.total())
+          let new_total = total + elem_span
+          if children.length() > 2 * min_degree {
+            let (left, right) = split_internal(children, counts)
+            (left, Some(right))
+          } else {
+            (Internal(children~, counts~, total=new_total), None)
+          }
+        }
       }
     }
   }
 }
 
 ///|
-/// Insert an item at the given position in the tree.
-/// Position is clamped to [0, span()]. Item must have span > 0.
-pub fn[T : @rle.Spanning] OrderTree::insert_at(
+/// Insert an element at the given position in the tree.
+/// Position is clamped to [0, span()]. Element must have span > 0.
+pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::insert_at(
   self : OrderTree[T],
   pos : Int,
-  item : T,
+  elem : T,
 ) -> Unit {
-  guard @rle.Spanning::span(item) > 0 else { return }
+  let elem_span = @rle.Spanning::span(elem)
+  guard elem_span > 0 else { return }
   let clamped_pos = if pos < 0 {
     0
   } else if pos > self.span() {
@@ -198,32 +312,34 @@ pub fn[T : @rle.Spanning] OrderTree::insert_at(
   }
   match self.root {
     None => {
-      let item_span = @rle.Spanning::span(item)
-      self.root = Some(Leaf(items=[item], total=item_span))
+      // Empty tree: create root as internal with single leaf child
+      let leaf = Leaf(elem~, span=elem_span)
+      self.root = Some(
+        Internal(children=[leaf], counts=[elem_span], total=elem_span),
+      )
+      self.size = 1
     }
     Some(root) => {
-      // Pre-split root if full (standard top-down B-tree approach).
-      // This ensures the root never exceeds max occupancy after
-      // proactive child splits during descent.
+      // Pre-split root if full
       let actual_root = if root.is_full(self.min_degree) {
-        let (left, right) = match root {
-          Leaf(items~, ..) => split_leaf(items)
-          Internal(children~, counts~, ..) => split_internal(children, counts)
+        match root {
+          Internal(children~, counts~, ..) => {
+            let (left, right) = split_internal(children, counts)
+            let left_total = left.total()
+            let right_total = right.total()
+            Internal(
+              children=[left, right],
+              counts=[left_total, right_total],
+              total=left_total + right_total,
+            )
+          }
+          Leaf(..) => root // Leaves can't be full
         }
-        let left_total = left.total()
-        let right_total = right.total()
-        Internal(
-          children=[left, right],
-          counts=[left_total, right_total],
-          total=left_total + right_total,
-        )
       } else {
         root
       }
-      let (updated, maybe_sibling) = actual_root.insert(
-        clamped_pos,
-        item,
-        self.min_degree,
+      let (updated, maybe_sibling, leaf_delta) = actual_root.insert(
+        clamped_pos, elem, self.min_degree,
       )
       match maybe_sibling {
         None => self.root = Some(updated)
@@ -239,7 +355,7 @@ pub fn[T : @rle.Spanning] OrderTree::insert_at(
           )
         }
       }
+      self.size = self.size + leaf_delta
     }
   }
-  self.size = self.size + 1
 }

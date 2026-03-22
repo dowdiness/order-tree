@@ -1,7 +1,8 @@
 ///|
-/// Build an OrderTree from an array of items in O(n) time using bottom-up construction.
-/// Items are placed in leaf nodes first, then internal nodes are built layer by layer.
-pub fn[T : @rle.Spanning] OrderTree::from_array(
+/// Build an OrderTree from an array of elements in O(n) time.
+/// Filters zero-span items, pre-merges adjacent mergeable elements,
+/// then builds bottom-up.
+pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
   items : Array[T],
   min_degree? : Int = DEFAULT_MIN_DEGREE,
 ) -> OrderTree[T] {
@@ -9,73 +10,39 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
   if items.is_empty() {
     return OrderTree::new(min_degree=t)
   }
-  let max_items = 2 * t - 1
-  let n = items.length()
-
-  // --- Build leaf nodes ---
-  // Partition items into groups of max_items.
-  // If the last group is too small (< t-1 items) and it's not the only group,
-  // redistribute from the previous group.
-  let groups : Array[Array[T]] = []
-  let mut start = 0
-  while start < n {
-    let end = if start + max_items >= n { n } else { start + max_items }
-    let group : Array[T] = Array::new(capacity=end - start)
-    for i in start..<end {
-      group.push(items[i])
+  // Filter zero-span and pre-merge adjacent elements
+  let merged : Array[T] = []
+  for item in items {
+    if @rle.Spanning::span(item) <= 0 {
+      continue
     }
-    groups.push(group)
-    start = end
-  }
-  // Fix last group if too small (< t-1 items, i.e. < min_degree - 1)
-  // Only do this if there are at least 2 groups.
-  let min_items = t - 1
-  if groups.length() >= 2 {
-    let last_idx = groups.length() - 1
-    let last = groups[last_idx]
-    if last.length() < min_items {
-      // Borrow items from the previous group until both have enough
-      let prev = groups[last_idx - 1]
-      // Move items from end of prev to beginning of last until both have >= min_items
-      // We want to move (prev.length() + last.length()) items across both groups,
-      // splitting evenly while keeping both >= min_items
-      let total = prev.length() + last.length()
-      // prev gets ceil(total/2), last gets floor(total/2)
-      let new_prev_count = (total + 1) / 2
-      let new_last_count = total - new_prev_count
-      // Build new_last from items at the boundary
-      let new_last : Array[T] = Array::new(capacity=new_last_count)
-      for i in new_prev_count..<(new_prev_count + new_last_count) {
-        if i < prev.length() {
-          new_last.push(prev[i])
+    match merged.last() {
+      Some(last) =>
+        if @rle.Mergeable::can_merge(last, item) {
+          merged[merged.length() - 1] = @rle.Mergeable::merge(last, item)
         } else {
-          new_last.push(last[i - prev.length()])
+          merged.push(item)
         }
-      }
-      // Trim prev to new_prev_count
-      while prev.length() > new_prev_count {
-        ignore(prev.pop())
-      }
-      groups[last_idx] = new_last
+      None => merged.push(item)
     }
   }
-
-  // Create leaf nodes from groups
-  let mut current_layer : Array[OrderNode[T]] = Array::new(
-    capacity=groups.length(),
-  )
-  for group in groups {
-    let total = group.total_span()
-    current_layer.push(Leaf(items=group, total~))
+  if merged.is_empty() {
+    return OrderTree::new(min_degree=t)
   }
-
-  // --- Build internal layers bottom-up ---
+  // Create one leaf per merged element
+  let mut current_layer : Array[OrderNode[T]] = Array::new(
+    capacity=merged.length(),
+  )
+  for elem in merged {
+    let span = @rle.Spanning::span(elem)
+    current_layer.push(Leaf(elem~, span~))
+  }
+  let leaf_count = current_layer.length()
+  // Build internal layers bottom-up
   let max_children = 2 * t
   let min_children = t
   while current_layer.length() > 1 {
     let node_count = current_layer.length()
-
-    // Partition current_layer into groups of max_children
     let child_groups : Array[Array[OrderNode[T]]] = []
     let mut cstart = 0
     while cstart < node_count {
@@ -91,8 +58,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
       child_groups.push(cgroup)
       cstart = cend
     }
-
-    // Fix last group if too small (< min_children) and not the only group
+    // Fix last group if too small
     if child_groups.length() >= 2 {
       let last_idx = child_groups.length() - 1
       let last = child_groups[last_idx]
@@ -101,7 +67,9 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
         let total = prev.length() + last.length()
         let new_prev_count = (total + 1) / 2
         let new_last_count = total - new_prev_count
-        let new_last : Array[OrderNode[T]] = Array::new(capacity=new_last_count)
+        let new_last : Array[OrderNode[T]] = Array::new(
+          capacity=new_last_count,
+        )
         for i in new_prev_count..<(new_prev_count + new_last_count) {
           if i < prev.length() {
             new_last.push(prev[i])
@@ -115,8 +83,7 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
         child_groups[last_idx] = new_last
       }
     }
-
-    // Create internal nodes from child groups
+    // Create internal nodes
     let next_layer : Array[OrderNode[T]] = Array::new(
       capacity=child_groups.length(),
     )
@@ -130,8 +97,14 @@ pub fn[T : @rle.Spanning] OrderTree::from_array(
     }
     current_layer = next_layer
   }
-
-  // Item count is known from input — no tree walk needed
-  let root_node = current_layer[0]
-  { root: Some(root_node), min_degree: t, size: n }
+  let mut root_node = current_layer[0]
+  // Ensure root is always Internal (invariant: root is never a bare Leaf)
+  match root_node {
+    Leaf(..) => {
+      let span = root_node.total()
+      root_node = Internal(children=[root_node], counts=[span], total=span)
+    }
+    Internal(..) => ()
+  }
+  { root: Some(root_node), min_degree: t, size: leaf_count }
 }
