@@ -2,7 +2,7 @@
 /// Remove an element at the given index, shifting subsequent elements left.
 fn[T] Array::remove_at(self : Array[T], idx : Int) -> T {
   let item = self[idx]
-  for i = idx; i < self.length() - 1; i = i + 1 {
+  for i in idx..<(self.length() - 1) {
     self[i] = self[i + 1]
   }
   let _ = self.pop()
@@ -22,21 +22,13 @@ fn[T] Array::insert_at(self : Array[T], idx : Int, item : T) -> Unit {
 ///|
 /// Compute the total span of an array of items.
 fn[T : @rle.Spanning] Array::total_span(self : Array[T]) -> Int {
-  let mut total = 0
-  for i = 0; i < self.length(); i = i + 1 {
-    total = total + @rle.Spanning::span(self[i])
-  }
-  total
+  self.iter().fold(init=0, fn(acc, item) { acc + @rle.Spanning::span(item) })
 }
 
 ///|
 /// Sum all elements of an Int array.
 fn Array::sum(self : Array[Int]) -> Int {
-  let mut total = 0
-  for i = 0; i < self.length(); i = i + 1 {
-    total = total + self[i]
-  }
-  total
+  self.iter().fold(init=0, fn(acc, x) { acc + x })
 }
 
 ///|

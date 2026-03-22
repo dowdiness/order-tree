@@ -1,44 +1,29 @@
 ///|
 /// Replace the item at the given span position in this node.
-/// Returns the old item, or None if position is out of bounds.
-/// For now, span change during set_at is not supported.
-/// Phase 1b will add span propagation.
+/// Span change during set_at is not supported in Phase 1a.
 fn[T : @rle.Spanning] OrderNode::set_in_node(
   self : OrderNode[T],
   pos : Int,
   new_item : T,
 ) -> T? {
   match self {
-    Leaf(items~, ..) => {
-      let mut remaining = pos
-      for i = 0; i < items.length(); i = i + 1 {
-        let s = @rle.Spanning::span(items[i])
-        if remaining < s {
-          let old = items[i]
-          // Guard: new item must have the same span as old item
-          let new_span = @rle.Spanning::span(new_item)
-          if new_span != s {
-            abort(
-              "set_in_node: span change not supported (old=\{s}, new=\{new_span})",
-            )
-          }
-          items[i] = new_item
-          return Some(old)
+    Leaf(items~, ..) =>
+      find_in_leaf(items, pos, fn(i, _offset) {
+        let old = items[i]
+        let s = @rle.Spanning::span(old)
+        let new_span = @rle.Spanning::span(new_item)
+        if new_span != s {
+          abort(
+            "set_in_node: span change not supported (old=\{s}, new=\{new_span})",
+          )
         }
-        remaining = remaining - s
-      }
-      None
-    }
-    Internal(children~, counts~, ..) => {
-      let mut remaining = pos
-      for i = 0; i < children.length(); i = i + 1 {
-        if remaining < counts[i] {
-          return children[i].set_in_node(remaining, new_item)
-        }
-        remaining = remaining - counts[i]
-      }
-      None
-    }
+        items[i] = new_item
+        Some(old)
+      })
+    Internal(children~, counts~, ..) =>
+      find_child(counts, pos, fn(i, remaining) {
+        children[i].set_in_node(remaining, new_item)
+      })
   }
 }
 
@@ -48,26 +33,45 @@ fn[T : @rle.Spanning] OrderNode::navigate(
   pos : Int,
 ) -> FindResult[T]? {
   match self {
-    Leaf(items~, ..) => {
-      let mut remaining = pos
-      for i = 0; i < items.length(); i = i + 1 {
-        let s = @rle.Spanning::span(items[i])
-        if remaining < s {
-          return Some({ item: items[i], offset: remaining })
-        }
-        remaining = remaining - s
+    Leaf(items~, ..) =>
+      find_in_leaf(items, pos, fn(i, offset) {
+        Some({ item: items[i], offset })
+      })
+    Internal(children~, counts~, ..) =>
+      find_child(counts, pos, fn(i, remaining) {
+        children[i].navigate(remaining)
+      })
+  }
+}
+
+///|
+/// Walk leaf items by span to find the item at position `pos`.
+/// Calls `f(index, offset_within_item)` when found.
+fn[T : @rle.Spanning, R] find_in_leaf(
+  items : Array[T],
+  pos : Int,
+  f : (Int, Int) -> R?,
+) -> R? {
+  loop (0, pos) {
+    (i, _) if i >= items.length() => None
+    (i, remaining) => {
+      let s = @rle.Spanning::span(items[i])
+      if remaining < s {
+        f(i, remaining)
+      } else {
+        continue (i + 1, remaining - s)
       }
-      None
     }
-    Internal(children~, counts~, ..) => {
-      let mut remaining = pos
-      for i = 0; i < children.length(); i = i + 1 {
-        if remaining < counts[i] {
-          return children[i].navigate(remaining)
-        }
-        remaining = remaining - counts[i]
-      }
-      None
-    }
+  }
+}
+
+///|
+/// Walk internal node counts to find which child contains position `pos`.
+/// Calls `f(child_index, remaining_within_child)` when found.
+fn[R] find_child(counts : Array[Int], pos : Int, f : (Int, Int) -> R?) -> R? {
+  loop (0, pos) {
+    (i, _) if i >= counts.length() => None
+    (i, remaining) if remaining < counts[i] => f(i, remaining)
+    (i, remaining) => continue (i + 1, remaining - counts[i])
   }
 }
