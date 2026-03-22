@@ -44,7 +44,7 @@ pub impl[T] @rle.Spanning for OrderTree[T] with logical_length(self) -> Int {
 ///|
 /// Get the element at span position. Aliased as `tree[pos]`.
 #alias("_[_]")
-pub fn[T : @rle.Spanning] OrderTree::get_at(
+pub fn[T] OrderTree::get_at(
   self : OrderTree[T],
   pos : Int,
 ) -> T? {
@@ -62,7 +62,7 @@ pub fn[T : @rle.Spanning] OrderTree::get_at(
 }
 
 ///|
-pub fn[T : @rle.Spanning] OrderTree::find(
+pub fn[T] OrderTree::find(
   self : OrderTree[T],
   pos : Int,
 ) -> FindResult[T]? {
@@ -176,23 +176,8 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_ra
     return
   }
   // Simple approach: repeated delete_at. Can be optimized later.
-  let mut remaining = end_ - start
-  while remaining > 0 {
-    match self.find(start) {
-      Some(fr) => {
-        let elem_span = @rle.Spanning::span(fr.elem)
-        let available = elem_span - fr.offset
-        if available <= remaining {
-          // Delete the rest of this element from offset onward
-          // Delete one unit at a time for correctness
-          ignore(self.delete_at(start))
-          remaining = remaining - 1
-        } else {
-          ignore(self.delete_at(start))
-          remaining = remaining - 1
-        }
-      }
-      None => break
-    }
+  let count = end_ - start
+  for _ in 0..<count {
+    ignore(self.delete_at(start))
   }
 }

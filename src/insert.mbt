@@ -8,20 +8,22 @@ fn[T] split_internal(
   let mid = children.length() / 2
   let left_children : Array[OrderNode[T]] = Array::new(capacity=mid)
   let left_counts : Array[Int] = Array::new(capacity=mid)
+  let mut left_total = 0
   for i in 0..<mid {
     left_children.push(children[i])
     left_counts.push(counts[i])
+    left_total = left_total + counts[i]
   }
   let right_children : Array[OrderNode[T]] = Array::new(
     capacity=children.length() - mid,
   )
   let right_counts : Array[Int] = Array::new(capacity=children.length() - mid)
+  let mut right_total = 0
   for i in mid..<children.length() {
     right_children.push(children[i])
     right_counts.push(counts[i])
+    right_total = right_total + counts[i]
   }
-  let left_total = left_counts.sum()
-  let right_total = right_counts.sum()
   (
     Internal(children=left_children, counts=left_counts, total=left_total),
     Internal(children=right_children, counts=right_counts, total=right_total),
