@@ -613,6 +613,22 @@ test "view slices at boundaries" {
 }
 
 ///|
+test "view spans multiple leaves with boundary slices" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 3))
+  tree.insert_at(3, mr(10, 2))
+  tree.insert_at(5, mr(20, 3))
+  let v = tree.view(start=2, end=6)
+  inspect(v.length(), content="3")
+  inspect(v[0].start, content="2")
+  inspect(v[0].count, content="1")
+  inspect(v[1].start, content="10")
+  inspect(v[1].count, content="2")
+  inspect(v[2].start, content="20")
+  inspect(v[2].count, content="1")
+}
+
+///|
 test "set_at on mergeable type triggers neighbor merge" {
   let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
   // Build: [0..2) and [5] — two leaves

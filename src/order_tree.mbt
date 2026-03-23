@@ -108,9 +108,9 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::op_set(
 
 ///|
 /// View operator: `tree[start:end]` returns elements in span range [start, end).
-/// Slices at boundaries. O(k * log n) where k = elements collected.
+/// Slices at boundaries. Uses one descent, then walks leaves in order.
 #alias("_[_:_]")
-pub fn[T : @rle.Spanning + @rle.Sliceable] OrderTree::view(
+pub fn[T : @rle.Sliceable] OrderTree::view(
   self : OrderTree[T],
   start? : Int = 0,
   end? : Int,
@@ -125,28 +125,35 @@ pub fn[T : @rle.Spanning + @rle.Sliceable] OrderTree::view(
   if start >= end || start >= total {
     return result
   }
-  let mut pos = start
-  while pos < end {
-    match self.find(pos) {
-      Some(fr) => {
-        let elem_span = @rle.Spanning::span(fr.elem)
-        let slice_start = fr.offset
-        let slice_end = if pos + (elem_span - fr.offset) > end {
-          fr.offset + (end - pos)
-        } else {
-          elem_span
+  match self.root {
+    None => result
+    Some(root) => {
+      let mut pos = start
+      let mut cursor = descend(root, start, 0, prepare_noop, find_slot, false)
+      while pos < end {
+        match cursor {
+          None => break
+          Some(cur) => {
+            let slice_start = cur.offset
+            let available = cur.leaf_span - slice_start
+            let remaining = end - pos
+            let take = if available > remaining { remaining } else { available }
+            let slice_end = slice_start + take
+            if slice_start == 0 && slice_end == cur.leaf_span {
+              result.push(cur.leaf_elem)
+            } else {
+              result.push(
+                must_slice(cur.leaf_elem, start=slice_start, end=slice_end),
+              )
+            }
+            pos = pos + take
+            cursor = cursor_next_leaf(cur)
+          }
         }
-        if slice_start == 0 && slice_end == elem_span {
-          result.push(fr.elem)
-        } else {
-          result.push(must_slice(fr.elem, start=slice_start, end=slice_end))
-        }
-        pos = pos + (slice_end - slice_start)
       }
-      None => break
+      result
     }
   }
-  result
 }
 
 ///|

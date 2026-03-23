@@ -272,3 +272,56 @@ fn[T] descend(
   }
   step(node, pos)
 }
+
+///|
+fn[T] copy_path(path : Array[PathFrame[T]], keep : Int) -> Array[PathFrame[T]] {
+  let copied : Array[PathFrame[T]] = []
+  for i = 0; i < keep; i = i + 1 {
+    copied.push(path[i])
+  }
+  copied
+}
+
+///|
+fn[T] descend_leftmost(
+  node : OrderNode[T],
+  prefix : Array[PathFrame[T]],
+) -> Cursor[T] {
+  let path = copy_path(prefix, prefix.length())
+  fn step(current : OrderNode[T]) -> Cursor[T] {
+    match current {
+      Leaf(elem~, span~) => {
+        let child_idx = if path.length() == 0 {
+          0
+        } else {
+          path[path.length() - 1].child_idx
+        }
+        { path, leaf_elem: elem, leaf_span: span, offset: 0, child_idx }
+      }
+      Internal(children~, counts~, ..) => {
+        path.push({ children, counts, child_idx: 0 })
+        step(children[0])
+      }
+    }
+  }
+  step(node)
+}
+
+///|
+/// Advance a leaf cursor to the next leaf in in-order traversal.
+fn[T] cursor_next_leaf(cursor : Cursor[T]) -> Cursor[T]? {
+  for depth = cursor.path.length() - 1; depth >= 0; depth = depth - 1 {
+    let frame = cursor.path[depth]
+    let next_idx = frame.child_idx + 1
+    if next_idx < frame.children.length() {
+      let prefix = copy_path(cursor.path, depth)
+      prefix.push({
+        children: frame.children,
+        counts: frame.counts,
+        child_idx: next_idx,
+      })
+      return Some(descend_leftmost(frame.children[next_idx], prefix))
+    }
+  }
+  None
+}
