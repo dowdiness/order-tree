@@ -35,3 +35,10 @@ Takeaways:
 - Cursor-based `view` looks cheap enough to keep as the default traversal path.
 - Rebuild-based `delete_range` appears fast enough to justify its simpler implementation.
 - Mergeable benchmarks are dominated by the small number of retained runs, so they should not be compared directly to the non-mergeable shape without noting that structural difference.
+
+Note:
+
+- The codebase later added a guarded in-place `delete_range` fast path, but the
+  public API still rebuilds for merge-normalization cases and non-root underflow
+  risk. These benchmark numbers therefore remain relevant as the conservative
+  baseline rather than the final word on range-delete performance.

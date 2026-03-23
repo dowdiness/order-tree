@@ -1,5 +1,27 @@
 # In-Place Multi-Leaf Zipper `delete_range` Plan
 
+## Current Status
+
+Partially implemented as of 2026-03-24.
+
+Implemented:
+- boundary descent helpers
+- lowest-common-ancestor range planning
+- boundary subtree rebuilding
+- `NodeSplice` planning
+- subtree-splice propagation
+- guarded public `delete_range` integration
+
+Current public behavior in `src/order_tree.mbt`:
+- use the in-place subtree splice path when occupancy is safe and the retained
+  prefix/suffix do not require merge normalization
+- fall back to kept-slice rebuild when merge normalization is needed
+- fall back to kept-slice rebuild when the planned non-root splice target would
+  underflow
+
+So this document is now a follow-up roadmap, not a greenfield implementation
+plan.
+
 ## Goal
 
 Replace the current rebuild-based `delete_range` with a true in-place multi-leaf zipper algorithm:
@@ -10,6 +32,24 @@ Replace the current rebuild-based `delete_range` with a true in-place multi-leaf
 4. propagate once
 
 This keeps the walker architecture coherent and avoids repeated local edits or whole-tree rebuilds for range deletion.
+
+## Residual Risks
+
+- Merge normalization remains conservative.
+  The planner can absorb some local gap merges, but the public path still
+  rebuilds whenever the retained prefix and suffix are mergeable because the
+  current in-place logic does not prove full canonicalization for all valid
+  `Mergeable` implementations.
+
+- Delete-side underflow repair is still incomplete for arbitrary subtree splices.
+  The current in-place public path only runs when the target non-root splice
+  point stays above the minimum child-count bound. Cases that would underflow
+  still rebuild.
+
+- The range planner in `src/walker_range_delete.mbt` is ahead of the public API.
+  Some planning helpers exist as verified infrastructure for future work, but
+  the public `delete_range` intentionally uses only the subset that is known to
+  preserve current semantics.
 
 ## Current Baseline
 

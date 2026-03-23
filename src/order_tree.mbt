@@ -140,6 +140,10 @@ fn[T : @rle.Mergeable + @rle.Sliceable] delete_range_needs_merge_rebuild(
   start : Int,
   end_ : Int,
 ) -> Bool {
+  // The in-place range planner preserves local structure, but it does not yet
+  // perform an unbounded canonicalization pass across the retained ranges.
+  // If the kept prefix and suffix are mergeable, rebuild to preserve the
+  // historical "fully normalized after delete_range" behavior.
   let mut left_kept : T? = None
   let mut right_kept : T? = None
   root.each_slice_in_range(0, start, fn(elem) { left_kept = Some(elem) })
@@ -157,9 +161,10 @@ fn[T : @rle.Mergeable + @rle.Sliceable] delete_range_needs_merge_rebuild(
 /// Delete all elements in the span range [start, end_).
 ///
 /// Uses the in-place multi-leaf walker splice when the planned subtree edit
-/// preserves the local occupancy bound and does not need kept-range merge
-/// normalization. Otherwise it falls back to the kept-slice rebuild path so
-/// existing merge behavior stays exact.
+/// preserves the local occupancy bound and the retained prefix/suffix do not
+/// require merge normalization. Otherwise it falls back to the kept-slice
+/// rebuild path so behavior stays canonical for all valid `Mergeable`
+/// implementations.
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(
   self : OrderTree[T],
   start : Int,
