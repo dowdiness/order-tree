@@ -1,0 +1,274 @@
+///|
+/// Find child index and remaining offset for position `pos`.
+/// Uses strict `<` slot selection.
+fn find_slot(counts : Array[Int], pos : Int, _total : Int) -> (Int, Int) {
+  if counts.length() == 0 {
+    abort("find_slot: empty counts")
+  }
+  match counts[:counts.length() - 1].find_by_sum(pos, fn(i, remaining) {
+    Some((i, remaining))
+  }) {
+    Some(pair) => pair
+    None => {
+      let last = counts.length() - 1
+      (last, pos - (_total - counts[last]))
+    }
+  }
+}
+
+///|
+/// Find child index and remaining offset for position `pos`.
+/// Uses inclusive `<=` slot selection for insert-at-boundary descent.
+fn find_slot_inclusive(counts : Array[Int], pos : Int, _total : Int) -> (Int, Int) {
+  if counts.length() == 0 {
+    abort("find_slot_inclusive: empty counts")
+  }
+  match counts[:counts.length() - 1].find_by_sum_inclusive(pos, fn(i, remaining) {
+    Some((i, remaining))
+  }) {
+    Some(pair) => pair
+    None => {
+      let last = counts.length() - 1
+      (last, pos - (_total - counts[last]))
+    }
+  }
+}
+
+///|
+fn[T] prepare_noop(
+  _children : Array[OrderNode[T]],
+  _counts : Array[Int],
+  _idx : Int,
+  _min_degree : Int,
+) -> Unit {
+}
+
+///|
+/// Borrow the last child from left sibling and prepend it to target.
+fn[T] borrow_from_left(
+  children : Array[OrderNode[T]],
+  counts : Array[Int],
+  idx : Int,
+) -> Unit {
+  let left = children[idx - 1]
+  let target = children[idx]
+  match (left, target) {
+    (
+      Internal(children=left_ch, counts=left_cn, total=left_total),
+      Internal(children=target_ch, counts=target_cn, total=target_total),
+    ) => {
+      let last_idx = left_ch.length() - 1
+      let borrowed_child = left_ch.remove_at(last_idx)
+      let borrowed_count = left_cn.remove_at(last_idx)
+      target_ch.insert_at(0, borrowed_child)
+      target_cn.insert_at(0, borrowed_count)
+      let new_left_total = left_total - borrowed_count
+      let new_target_total = target_total + borrowed_count
+      children[idx - 1] = Internal(
+        children=left_ch,
+        counts=left_cn,
+        total=new_left_total,
+      )
+      children[idx] = Internal(
+        children=target_ch,
+        counts=target_cn,
+        total=new_target_total,
+      )
+      counts[idx - 1] = new_left_total
+      counts[idx] = new_target_total
+    }
+    _ => abort("borrow_from_left: expected internal nodes")
+  }
+}
+
+///|
+/// Borrow the first child from right sibling and append it to target.
+fn[T] borrow_from_right(
+  children : Array[OrderNode[T]],
+  counts : Array[Int],
+  idx : Int,
+) -> Unit {
+  let target = children[idx]
+  let right = children[idx + 1]
+  match (target, right) {
+    (
+      Internal(children=target_ch, counts=target_cn, total=target_total),
+      Internal(children=right_ch, counts=right_cn, total=right_total),
+    ) => {
+      let borrowed_child = right_ch.remove_at(0)
+      let borrowed_count = right_cn.remove_at(0)
+      target_ch.push(borrowed_child)
+      target_cn.push(borrowed_count)
+      let new_target_total = target_total + borrowed_count
+      let new_right_total = right_total - borrowed_count
+      children[idx] = Internal(
+        children=target_ch,
+        counts=target_cn,
+        total=new_target_total,
+      )
+      children[idx + 1] = Internal(
+        children=right_ch,
+        counts=right_cn,
+        total=new_right_total,
+      )
+      counts[idx] = new_target_total
+      counts[idx + 1] = new_right_total
+    }
+    _ => abort("borrow_from_right: expected internal nodes")
+  }
+}
+
+///|
+/// Merge child at idx with child at idx + 1.
+fn[T] merge_children(
+  children : Array[OrderNode[T]],
+  counts : Array[Int],
+  idx : Int,
+) -> Unit {
+  let left = children[idx]
+  let right = children[idx + 1]
+  match (left, right) {
+    (
+      Internal(children=left_ch, counts=left_cn, total=left_total),
+      Internal(children=right_ch, counts=right_cn, total=right_total),
+    ) => {
+      for i in 0..<right_ch.length() {
+        left_ch.push(right_ch[i])
+        left_cn.push(right_cn[i])
+      }
+      let merged = Internal(
+        children=left_ch,
+        counts=left_cn,
+        total=left_total + right_total,
+      )
+      children[idx] = merged
+      counts[idx] = merged.total()
+      let _ = children.remove_at(idx + 1)
+      let _ = counts.remove_at(idx + 1)
+    }
+    _ => abort("merge_children: expected internal nodes")
+  }
+}
+
+///|
+fn[T] OrderNode::needs_rebalance(self : OrderNode[T], min_degree : Int) -> Bool {
+  match self {
+    Leaf(..) => false
+    Internal(children~, ..) => children.length() <= min_degree
+  }
+}
+
+///|
+fn[T] OrderNode::can_lend(self : OrderNode[T], min_degree : Int) -> Bool {
+  match self {
+    Leaf(..) => false
+    Internal(children~, ..) => children.length() > min_degree
+  }
+}
+
+///|
+fn[T] ensure_min_children(
+  children : Array[OrderNode[T]],
+  counts : Array[Int],
+  idx : Int,
+  min_degree : Int,
+) -> Unit {
+  if not(children[idx].needs_rebalance(min_degree)) {
+    return
+  }
+  if idx > 0 && children[idx - 1].can_lend(min_degree) {
+    borrow_from_left(children, counts, idx)
+    return
+  }
+  if idx + 1 < children.length() && children[idx + 1].can_lend(min_degree) {
+    borrow_from_right(children, counts, idx)
+    return
+  }
+  if idx > 0 {
+    merge_children(children, counts, idx - 1)
+  } else {
+    merge_children(children, counts, idx)
+  }
+}
+
+///|
+fn[T] prepare_ensure_min(
+  children : Array[OrderNode[T]],
+  counts : Array[Int],
+  idx : Int,
+  min_degree : Int,
+) -> Unit {
+  ensure_min_children(children, counts, idx, min_degree)
+}
+
+///|
+fn[T] prepare_split(
+  children : Array[OrderNode[T]],
+  counts : Array[Int],
+  idx : Int,
+  min_degree : Int,
+) -> Unit {
+  if not(children[idx].is_full(min_degree)) {
+    return
+  }
+  match children[idx] {
+    Internal(children=child_children, counts=child_counts, ..) => {
+      let (left, right) = split_internal(child_children, child_counts)
+      children[idx] = left
+      counts[idx] = left.total()
+      children.insert_at(idx + 1, right)
+      counts.insert_at(idx + 1, right.total())
+    }
+    Leaf(..) => ()
+  }
+}
+
+///|
+/// Descend from a node to the focused leaf at span position `pos`.
+fn[T] descend(
+  node : OrderNode[T],
+  pos : Int,
+  min_degree : Int,
+  prepare : (Array[OrderNode[T]], Array[Int], Int, Int) -> Unit,
+  find_slot_fn : (Array[Int], Int, Int) -> (Int, Int),
+  allow_leaf_end : Bool,
+) -> Cursor[T]? {
+  let path : Array[PathFrame[T]] = []
+  fn step(current : OrderNode[T], current_pos : Int) -> Cursor[T]? {
+    match current {
+      Leaf(elem~, span~) =>
+        if current_pos >= 0 &&
+          (current_pos < span || (allow_leaf_end && current_pos == span)) {
+          let child_idx = if path.length() == 0 {
+            0
+          } else {
+            path[path.length() - 1].child_idx
+          }
+          return Some(
+            {
+              path,
+              leaf_elem: elem,
+              leaf_span: span,
+              offset: current_pos,
+              child_idx,
+            },
+          )
+        } else {
+          None
+        }
+      Internal(children~, counts~, total~) => {
+        let (pre_idx, _) = find_slot_fn(counts, current_pos, total)
+        prepare(children, counts, pre_idx, min_degree)
+        let updated_total = counts.sum()
+        let (child_idx, remaining) = find_slot_fn(
+          counts,
+          current_pos,
+          updated_total,
+        )
+        path.push({ children, counts, child_idx })
+        step(children[child_idx], remaining)
+      }
+    }
+  }
+  step(node, pos)
+}
