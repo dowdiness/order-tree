@@ -165,6 +165,322 @@ test "descend leaf at end boundary returns none at tree start" {
 }
 
 ///|
+test "order node height counts edges to leaf" {
+  let leaf : OrderNode[Run] = Leaf(elem=run("a", 1), span=1)
+  let child : OrderNode[Run] = Internal(children=[leaf], counts=[1], total=1)
+  let root : OrderNode[Run] = Internal(children=[child], counts=[1], total=1)
+  inspect(leaf.height(), content="0")
+  inspect(child.height(), content="1")
+  inspect(root.height(), content="2")
+}
+
+///|
+test "shared prefix length handles same leaf and divergence" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 1), span=1),
+      Leaf(elem=run("b", 1), span=1),
+    ],
+    counts=[1, 1],
+    total=2,
+  )
+  let left = descend_leaf_at(root, 0, 2).unwrap()
+  let right = descend_leaf_at(root, 1, 2).unwrap()
+  inspect(shared_prefix_length(left.path, left.path), content="1")
+  inspect(shared_prefix_length(left.path, right.path), content="0")
+}
+
+///|
+test "lowest common ancestor range handles same leaf" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 3), span=3),
+      Leaf(elem=run("b", 2), span=2),
+    ],
+    counts=[3, 2],
+    total=5,
+  )
+  let start = descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = descend_leaf_at_end_boundary(root, 2, 2).unwrap()
+  let range = lowest_common_ancestor_range(start, end_)
+  inspect(range.prefix.length(), content="0")
+  inspect(range.start_idx, content="0")
+  inspect(range.end_idx, content="1")
+  inspect(range.child_height, content="0")
+}
+
+///|
+test "lowest common ancestor range handles same parent different children" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 2), span=2),
+      Leaf(elem=run("b", 2), span=2),
+      Leaf(elem=run("c", 2), span=2),
+    ],
+    counts=[2, 2, 2],
+    total=6,
+  )
+  let start = descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = descend_leaf_at_end_boundary(root, 5, 2).unwrap()
+  let range = lowest_common_ancestor_range(start, end_)
+  inspect(range.prefix.length(), content="0")
+  inspect(range.start_idx, content="0")
+  inspect(range.end_idx, content="3")
+  inspect(range.child_height, content="0")
+}
+
+///|
+test "lowest common ancestor range handles higher level divergence" {
+  let left_child : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 1), span=1),
+      Leaf(elem=run("b", 1), span=1),
+    ],
+    counts=[1, 1],
+    total=2,
+  )
+  let right_child : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("c", 1), span=1),
+      Leaf(elem=run("d", 1), span=1),
+    ],
+    counts=[1, 1],
+    total=2,
+  )
+  let root : OrderNode[Run] = Internal(
+    children=[left_child, right_child],
+    counts=[2, 2],
+    total=4,
+  )
+  let start = descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = descend_leaf_at_end_boundary(root, 3, 2).unwrap()
+  let range = lowest_common_ancestor_range(start, end_)
+  inspect(range.prefix.length(), content="0")
+  inspect(range.start_idx, content="0")
+  inspect(range.end_idx, content="2")
+  inspect(range.child_height, content="1")
+}
+
+///|
+test "left boundary subtree returns none when start is on leaf boundary" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 2), span=2),
+      Leaf(elem=run("b", 2), span=2),
+    ],
+    counts=[2, 2],
+    total=4,
+  )
+  let start = descend_leaf_at(root, 2, 2).unwrap()
+  let end_ = descend_leaf_at_end_boundary(root, 4, 2).unwrap()
+  let lca = lowest_common_ancestor_range(start, end_)
+  inspect(left_boundary_subtree(lca, start) is None, content="true")
+}
+
+///|
+test "right boundary subtree returns none when end is on leaf boundary" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 2), span=2),
+      Leaf(elem=run("b", 2), span=2),
+    ],
+    counts=[2, 2],
+    total=4,
+  )
+  let start = descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = descend_leaf_at_end_boundary(root, 2, 2).unwrap()
+  let lca = lowest_common_ancestor_range(start, end_)
+  inspect(right_boundary_subtree(lca, end_) is None, content="true")
+}
+
+///|
+test "left boundary subtree rebuilds to lca child height" {
+  let left_child : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 2), span=2),
+      Leaf(elem=run("b", 1), span=1),
+    ],
+    counts=[2, 1],
+    total=3,
+  )
+  let right_child : OrderNode[Run] = Internal(
+    children=[Leaf(elem=run("c", 2), span=2)],
+    counts=[2],
+    total=2,
+  )
+  let root : OrderNode[Run] = Internal(
+    children=[left_child, right_child],
+    counts=[3, 2],
+    total=5,
+  )
+  let start = descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = descend_leaf_at_end_boundary(root, 4, 2).unwrap()
+  let lca = lowest_common_ancestor_range(start, end_)
+  let rebuilt = left_boundary_subtree(lca, start).unwrap()
+  inspect(rebuilt.height(), content="1")
+  inspect(rebuilt.total(), content="1")
+}
+
+///|
+test "right boundary subtree rebuilds to lca child height" {
+  let left_child : OrderNode[Run] = Internal(
+    children=[Leaf(elem=run("a", 2), span=2)],
+    counts=[2],
+    total=2,
+  )
+  let right_child : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("b", 1), span=1),
+      Leaf(elem=run("c", 2), span=2),
+    ],
+    counts=[1, 2],
+    total=3,
+  )
+  let root : OrderNode[Run] = Internal(
+    children=[left_child, right_child],
+    counts=[2, 3],
+    total=5,
+  )
+  let start = descend_leaf_at(root, 0, 2).unwrap()
+  let end_ = descend_leaf_at_end_boundary(root, 4, 2).unwrap()
+  let lca = lowest_common_ancestor_range(start, end_)
+  let rebuilt = right_boundary_subtree(lca, end_).unwrap()
+  inspect(rebuilt.height(), content="1")
+  inspect(rebuilt.total(), content="1")
+}
+
+///|
+test "plan delete range handles same leaf splice" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 5), span=5),
+      Leaf(elem=run("b", 2), span=2),
+    ],
+    counts=[5, 2],
+    total=7,
+  )
+  let splice = plan_delete_range(root, 1, 4, 2).unwrap()
+  inspect(splice.prefix.length(), content="0")
+  inspect(splice.start_idx, content="0")
+  inspect(splice.end_idx, content="1")
+  inspect(splice.new_children.length(), content="1")
+  inspect(splice.new_children[0].total(), content="2")
+  inspect(splice.leaf_delta, content="0")
+}
+
+///|
+test "plan delete range handles multi child lca splice" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 2), span=2),
+      Leaf(elem=run("b", 2), span=2),
+      Leaf(elem=run("c", 2), span=2),
+    ],
+    counts=[2, 2, 2],
+    total=6,
+  )
+  let splice = plan_delete_range(root, 1, 5, 2).unwrap()
+  inspect(splice.prefix.length(), content="0")
+  inspect(splice.start_idx, content="0")
+  inspect(splice.end_idx, content="3")
+  inspect(splice.new_children.length(), content="2")
+  inspect(splice.new_children[0].height(), content="0")
+  inspect(splice.new_children[0].total(), content="1")
+  inspect(splice.new_children[1].height(), content="0")
+  inspect(splice.new_children[1].total(), content="1")
+  inspect(splice.leaf_delta, content="-1")
+}
+
+///|
+test "propagate node splice updates root in place" {
+  let children : Array[OrderNode[Run]] = [
+    Leaf(elem=run("a", 2), span=2),
+    Leaf(elem=run("b", 2), span=2),
+    Leaf(elem=run("c", 2), span=2),
+  ]
+  let counts = [2, 2, 2]
+  let result = propagate_node_splice(
+    {
+      prefix: [],
+      children,
+      counts,
+      start_idx: 0,
+      end_idx: 3,
+      new_children: [
+        Leaf(elem=run("a", 1), span=1),
+        Leaf(elem=run("c", 1), span=1),
+      ],
+      original_child_count: 3,
+      leaf_delta: -1,
+    },
+    2,
+  )
+  inspect(result.node.total(), content="2")
+  inspect(result.overflow is None, content="true")
+  inspect(result.leaf_delta, content="-1")
+  match result.node {
+    Internal(children~, counts~, total~) => {
+      inspect(children.length(), content="2")
+      inspect(counts, content="[1, 1]")
+      inspect(total, content="2")
+    }
+    _ => inspect("bad node", content="\"unexpected\"")
+  }
+}
+
+///|
+test "propagate node splice updates ancestor counts" {
+  let left_child : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 2), span=2),
+      Leaf(elem=run("b", 2), span=2),
+    ],
+    counts=[2, 2],
+    total=4,
+  )
+  let right_child : OrderNode[Run] = Internal(
+    children=[Leaf(elem=run("c", 3), span=3)],
+    counts=[3],
+    total=3,
+  )
+  let root_children : Array[OrderNode[Run]] = [left_child, right_child]
+  let root_counts = [4, 3]
+  let prefix : Array[PathFrame[Run]] = [{
+    children: root_children,
+    counts: root_counts,
+    child_idx: 0,
+  }]
+  let target_children : Array[OrderNode[Run]] = [
+    Leaf(elem=run("a", 2), span=2),
+    Leaf(elem=run("b", 2), span=2),
+  ]
+  let target_counts = [2, 2]
+  let result = propagate_node_splice(
+    {
+      prefix,
+      children: target_children,
+      counts: target_counts,
+      start_idx: 0,
+      end_idx: 2,
+      new_children: [Leaf(elem=run("a", 1), span=1)],
+      original_child_count: 2,
+      leaf_delta: -1,
+    },
+    2,
+  )
+  inspect(result.overflow is None, content="true")
+  inspect(result.node.total(), content="4")
+  match result.node {
+    Internal(children~, counts~, total~) => {
+      inspect(children.length(), content="2")
+      inspect(counts, content="[1, 3]")
+      inspect(total, content="4")
+    }
+    _ => inspect("bad node", content="\"unexpected\"")
+  }
+}
+
+///|
 test "descend re-finds slot after ensure-min merge" {
   let left : OrderNode[Run] = Internal(
     children=[

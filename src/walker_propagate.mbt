@@ -52,6 +52,29 @@ fn[T] apply_splice(
 }
 
 ///|
+fn[T] apply_node_splice(
+  children : Array[OrderNode[T]],
+  counts : Array[Int],
+  start_idx : Int,
+  end_idx : Int,
+  new_children : Array[OrderNode[T]],
+) -> Unit {
+  let remove_count = end_idx - start_idx
+  for _ in 0..<remove_count {
+    let _ = children.remove_at(start_idx)
+    let _ = counts.remove_at(start_idx)
+  }
+  if new_children.length() == 0 {
+    return
+  }
+  for i = new_children.length() - 1; i >= 0; i = i - 1 {
+    let child = new_children[i]
+    children.insert_at(start_idx, child)
+    counts.insert_at(start_idx, child.total())
+  }
+}
+
+///|
 fn[T] maybe_split(
   children : Array[OrderNode[T]],
   counts : Array[Int],
@@ -106,4 +129,45 @@ fn[T] propagate(
     overflow = next_overflow
   }
   { node: current_node, overflow, leaf_delta }
+}
+
+///|
+fn[T] propagate_node_splice(
+  splice : NodeSplice[T],
+  min_degree : Int,
+) -> PropagateResult[T] {
+  apply_node_splice(
+    splice.children,
+    splice.counts,
+    splice.start_idx,
+    splice.end_idx,
+    splice.new_children,
+  )
+  let (initial_node, initial_overflow) = maybe_split(
+    splice.children,
+    splice.counts,
+    min_degree,
+  )
+  let mut current_node = initial_node
+  let mut overflow = initial_overflow
+  for i = splice.prefix.length() - 1; i >= 0; i = i - 1 {
+    let frame = splice.prefix[i]
+    frame.children[frame.child_idx] = current_node
+    frame.counts[frame.child_idx] = current_node.total()
+    match overflow {
+      None => ()
+      Some(sibling) => {
+        frame.children.insert_at(frame.child_idx + 1, sibling)
+        frame.counts.insert_at(frame.child_idx + 1, sibling.total())
+      }
+    }
+    let (updated, next_overflow) = maybe_split(
+      frame.children,
+      frame.counts,
+      min_degree,
+    )
+    current_node = updated
+    overflow = next_overflow
+  }
+  { node: current_node, overflow, leaf_delta: splice.leaf_delta }
 }

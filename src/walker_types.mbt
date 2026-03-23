@@ -44,9 +44,12 @@ priv struct AncestorRange[T] {
 /// General subtree splice at the LCA child height.
 priv struct NodeSplice[T] {
   prefix : Array[PathFrame[T]]
+  children : Array[OrderNode[T]]
+  counts : Array[Int]
   start_idx : Int
   end_idx : Int
   new_children : Array[OrderNode[T]]
+  original_child_count : Int
   leaf_delta : Int
 }
 

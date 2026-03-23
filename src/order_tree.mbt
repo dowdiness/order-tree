@@ -135,12 +135,32 @@ pub fn[T : @rle.Sliceable] OrderTree::view(
 }
 
 ///|
-/// Delete all elements in the span range [start, end_) by walking the kept
-/// ranges once and rebuilding the tree.
+fn[T : @rle.Mergeable + @rle.Sliceable] delete_range_needs_merge_rebuild(
+  root : OrderNode[T],
+  start : Int,
+  end_ : Int,
+) -> Bool {
+  let mut left_kept : T? = None
+  let mut right_kept : T? = None
+  root.each_slice_in_range(0, start, fn(elem) { left_kept = Some(elem) })
+  root.each_slice_in_range(end_, root.total(), fn(elem) {
+    if right_kept is None {
+      right_kept = Some(elem)
+    }
+  })
+  match (left_kept, right_kept) {
+    (Some(left), Some(right)) => @rle.Mergeable::can_merge(left, right)
+    _ => false
+  }
+}
+
+///|
+/// Delete all elements in the span range [start, end_).
 ///
-/// This is a bulk rebuild algorithm, not an in-place multi-leaf zipper splice.
-/// It keeps the implementation simple and lets `from_array` re-establish
-/// merging and internal-node shape in one pass.
+/// Uses the in-place multi-leaf walker splice when the planned subtree edit
+/// preserves the local occupancy bound and does not need cross-gap merge
+/// repair. Otherwise it falls back to the kept-slice rebuild path so existing
+/// merge behavior stays exact.
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(
   self : OrderTree[T],
   start : Int,
@@ -153,13 +173,45 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_ra
       if start < 0 || start >= end_ || start >= total {
         return
       }
-      let end = if end_ > total { total } else { end_ }
-      let kept : Array[T] = []
-      root.each_slice_in_range(0, start, fn(elem) { kept.push(elem) })
-      root.each_slice_in_range(end, total, fn(elem) { kept.push(elem) })
-      let rebuilt = OrderTree::from_array(kept, min_degree=self.min_degree)
-      self.root = rebuilt.root
-      self.size = rebuilt.size
+      let rebuild = fn() {
+        let end = if end_ > total { total } else { end_ }
+        let kept : Array[T] = []
+        root.each_slice_in_range(0, start, fn(elem) { kept.push(elem) })
+        root.each_slice_in_range(end, total, fn(elem) { kept.push(elem) })
+        let rebuilt = OrderTree::from_array(kept, min_degree=self.min_degree)
+        self.root = rebuilt.root
+        self.size = rebuilt.size
+      }
+      match plan_delete_range(root, start, end_, self.min_degree) {
+        None => rebuild()
+        Some(splice) => {
+          let new_child_count =
+            splice.original_child_count -
+            (splice.end_idx - splice.start_idx) +
+            splice.new_children.length()
+          if (splice.prefix.length() > 0 && new_child_count < self.min_degree) ||
+            delete_range_needs_merge_rebuild(root, start, end_) {
+            rebuild()
+          } else {
+            let propagated = propagate_node_splice(splice, self.min_degree)
+            match propagated.overflow {
+              None => self.root = normalize_root_after_delete(propagated.node)
+              Some(sibling) => {
+                let left_total = propagated.node.total()
+                let right_total = sibling.total()
+                self.root = Some(
+                  Internal(
+                    children=[propagated.node, sibling],
+                    counts=[left_total, right_total],
+                    total=left_total + right_total,
+                  ),
+                )
+              }
+            }
+            self.size = self.size + propagated.leaf_delta
+          }
+        }
+      }
     }
   }
 }
