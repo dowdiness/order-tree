@@ -51,6 +51,18 @@ This keeps the walker architecture coherent and avoids repeated local edits or w
   the public `delete_range` intentionally uses only the subset that is known to
   preserve current semantics.
 
+## Future TODOs
+
+- Remove the merge-normalization fallback in `OrderTree::delete_range`.
+  Implement a proven in-place canonicalization pass for the retained boundary
+  region so `delete_range` can preserve fully normalized `Mergeable` behavior
+  without rebuilding from kept slices.
+
+- Remove the non-root underflow fallback in `OrderTree::delete_range`.
+  Extend subtree-splice propagation with true delete-side occupancy repair
+  (borrow/merge after range splice) so arbitrary in-place range deletes can
+  maintain B-tree invariants without falling back to rebuild.
+
 ## Current Baseline
 
 The current codebase already has:
