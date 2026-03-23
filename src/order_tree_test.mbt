@@ -452,7 +452,7 @@ test "view operator: tree[start:end]" {
 priv struct MItem {
   start : Int
   count : Int
-} derive(Show)
+}
 
 ///|
 impl @rle.HasLength for MItem with length(self) -> Int {

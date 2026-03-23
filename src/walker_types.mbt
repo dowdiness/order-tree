@@ -54,13 +54,6 @@ priv struct NodeSplice[T] {
 }
 
 ///|
-/// Rebuilt boundary subtrees for a range splice.
-priv struct BoundarySubtrees[T] {
-  left : OrderNode[T]?
-  right : OrderNode[T]?
-}
-
-///|
 /// Read-only context passed to pure leaf splice computations.
 priv struct LeafContext[T] {
   elem : T

@@ -74,30 +74,3 @@ fn[T] lowest_common_ancestor_range(
     },
   }
 }
-
-///|
-/// Rebuild a single edited leaf back up through a path suffix.
-fn[T] build_single_chain(
-  path_suffix : Array[PathFrame[T]],
-  leaf : OrderNode[T],
-) -> OrderNode[T] {
-  let mut current = leaf
-  for i = path_suffix.length() - 1; i >= 0; i = i - 1 {
-    let frame = path_suffix[i]
-    let children : Array[OrderNode[T]] = Array::new(
-      capacity=frame.children.length(),
-    )
-    let counts : Array[Int] = Array::new(capacity=frame.counts.length())
-    for j = 0; j < frame.children.length(); j = j + 1 {
-      if j == frame.child_idx {
-        children.push(current)
-        counts.push(current.total())
-      } else {
-        children.push(frame.children[j])
-        counts.push(frame.counts[j])
-      }
-    }
-    current = Internal(children=children, counts=counts, total=counts.sum())
-  }
-  current
-}
