@@ -325,3 +325,37 @@ fn[T] cursor_next_leaf(cursor : Cursor[T]) -> Cursor[T]? {
   }
   None
 }
+
+///|
+/// Walk sliced leaf content in span range [start, end_) using a single descent.
+fn[T : @rle.Sliceable] OrderNode::each_slice_in_range(
+  self : OrderNode[T],
+  start : Int,
+  end_ : Int,
+  f : (T) -> Unit,
+) -> Unit {
+  if start >= end_ {
+    return
+  }
+  let mut pos = start
+  let mut cursor = descend(self, start, 0, prepare_noop, find_slot, false)
+  while pos < end_ {
+    match cursor {
+      None => break
+      Some(cur) => {
+        let slice_start = cur.offset
+        let available = cur.leaf_span - slice_start
+        let remaining = end_ - pos
+        let take = if available > remaining { remaining } else { available }
+        let slice_end = slice_start + take
+        if slice_start == 0 && slice_end == cur.leaf_span {
+          f(cur.leaf_elem)
+        } else {
+          f(must_slice(cur.leaf_elem, start=slice_start, end=slice_end))
+        }
+        pos = pos + take
+        cursor = cursor_next_leaf(cur)
+      }
+    }
+  }
+}

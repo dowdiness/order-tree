@@ -664,6 +664,73 @@ test "same-run delete_range with mergeable type" {
   inspect(fr3.elem.count, content="3")
 }
 
+///|
+test "delete_range across multiple leaves rebuilds kept slices" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 3))
+  tree.insert_at(3, mr(10, 2))
+  tree.insert_at(5, mr(20, 3))
+  tree.delete_range(1, 6)
+  inspect(tree.span(), content="3")
+  inspect(tree.size(), content="2")
+  let fr0 = tree.find(0).unwrap()
+  inspect(fr0.elem.start, content="0")
+  inspect(fr0.elem.count, content="1")
+  let fr1 = tree.find(1).unwrap()
+  inspect(fr1.elem.start, content="21")
+  inspect(fr1.elem.count, content="2")
+}
+
+///|
+test "delete_range full span clears tree" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 3))
+  tree.insert_at(3, mr(10, 2))
+  tree.delete_range(0, tree.span())
+  inspect(tree.is_empty(), content="true")
+  inspect(tree.span(), content="0")
+  inspect(tree.size(), content="0")
+}
+
+///|
+test "delete_range ignores negative start" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 5))
+  tree.delete_range(-2, 3)
+  inspect(tree.span(), content="5")
+  inspect(tree.size(), content="1")
+  let fr0 = tree.find(0).unwrap()
+  inspect(fr0.elem.start, content="0")
+  inspect(fr0.elem.count, content="5")
+}
+
+///|
+test "delete_range clamps end to span" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 3))
+  tree.insert_at(3, mr(10, 2))
+  tree.delete_range(2, 99)
+  inspect(tree.span(), content="2")
+  inspect(tree.size(), content="1")
+  let fr0 = tree.find(0).unwrap()
+  inspect(fr0.elem.start, content="0")
+  inspect(fr0.elem.count, content="2")
+}
+
+///|
+test "delete_range merges kept ranges across removed gap" {
+  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  tree.insert_at(0, mr(0, 3))
+  tree.insert_at(3, mr(100, 2))
+  tree.insert_at(5, mr(3, 2))
+  tree.delete_range(3, 5)
+  inspect(tree.span(), content="5")
+  inspect(tree.size(), content="1")
+  let fr0 = tree.find(0).unwrap()
+  inspect(fr0.elem.start, content="0")
+  inspect(fr0.elem.count, content="5")
+}
+
 // ====================================================================
 // RLE round-trip tests
 // ====================================================================

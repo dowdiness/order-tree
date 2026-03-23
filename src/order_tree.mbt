@@ -128,51 +128,34 @@ pub fn[T : @rle.Sliceable] OrderTree::view(
   match self.root {
     None => result
     Some(root) => {
-      let mut pos = start
-      let mut cursor = descend(root, start, 0, prepare_noop, find_slot, false)
-      while pos < end {
-        match cursor {
-          None => break
-          Some(cur) => {
-            let slice_start = cur.offset
-            let available = cur.leaf_span - slice_start
-            let remaining = end - pos
-            let take = if available > remaining { remaining } else { available }
-            let slice_end = slice_start + take
-            if slice_start == 0 && slice_end == cur.leaf_span {
-              result.push(cur.leaf_elem)
-            } else {
-              result.push(
-                must_slice(cur.leaf_elem, start=slice_start, end=slice_end),
-              )
-            }
-            pos = pos + take
-            cursor = cursor_next_leaf(cur)
-          }
-        }
-      }
+      root.each_slice_in_range(start, end, fn(elem) { result.push(elem) })
       result
     }
   }
 }
 
 ///|
-/// Delete all elements in the span range [start, end).
-/// NOTE: Spec deviation — uses repeated delete_at (O(k * log n)) instead of
-/// O(log n + m) bulk algorithm. The bulk algorithm requires a complex multi-leaf
-/// removal with boundary slicing that is deferred as a future optimization.
-/// Functionally correct, just not optimal for large ranges.
+/// Delete all elements in the span range [start, end_) by walking the kept
+/// ranges once and rebuilding the tree.
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(
   self : OrderTree[T],
   start : Int,
   end_ : Int,
 ) -> Unit {
-  if start >= end_ {
-    return
-  }
-  // Simple approach: repeated delete_at. Can be optimized later.
-  let count = end_ - start
-  for _ in 0..<count {
-    ignore(self.delete_at(start))
+  match self.root {
+    None => ()
+    Some(root) => {
+      let total = root.total()
+      if start < 0 || start >= end_ || start >= total {
+        return
+      }
+      let end = if end_ > total { total } else { end_ }
+      let kept : Array[T] = []
+      root.each_slice_in_range(0, start, fn(elem) { kept.push(elem) })
+      root.each_slice_in_range(end, total, fn(elem) { kept.push(elem) })
+      let rebuilt = OrderTree::from_array(kept, min_degree=self.min_degree)
+      self.root = rebuilt.root
+      self.size = rebuilt.size
+    }
   }
 }
