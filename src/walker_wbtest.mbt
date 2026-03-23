@@ -81,6 +81,21 @@ test "find slot helpers preserve boundary semantics" {
 }
 
 ///|
+test "cursor as leaf preserves leaf payload" {
+  let cursor : Cursor[Run] = {
+    path: [],
+    leaf_elem: run("x", 3),
+    leaf_span: 3,
+    offset: 1,
+    child_idx: 0,
+  }
+  let leaf = cursor_as_leaf(cursor).unwrap()
+  inspect(leaf.elem, content="{ch: \"x\", span: 3}")
+  inspect(leaf.span, content="3")
+  inspect(leaf.offset, content="1")
+}
+
+///|
 test "descend keeps insert boundary on current leaf" {
   let root : OrderNode[Run] = Internal(
     children=[
@@ -98,6 +113,55 @@ test "descend keeps insert boundary on current leaf" {
       inspect(cursor.leaf_elem, content="{ch: \"a\", span: 2}")
     }
   }
+}
+
+///|
+test "descend leaf at uses strict boundary semantics" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 2), span=2),
+      Leaf(elem=run("b", 2), span=2),
+    ],
+    counts=[2, 2],
+    total=4,
+  )
+  let leaf = descend_leaf_at(root, 2, 2).unwrap()
+  inspect(leaf.elem, content="{ch: \"b\", span: 2}")
+  inspect(leaf.offset, content="0")
+}
+
+///|
+test "descend leaf at end boundary stays on left leaf" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 2), span=2),
+      Leaf(elem=run("b", 3), span=3),
+    ],
+    counts=[2, 3],
+    total=5,
+  )
+  let boundary = descend_leaf_at_end_boundary(root, 2, 2).unwrap()
+  inspect(boundary.elem, content="{ch: \"a\", span: 2}")
+  inspect(boundary.offset, content="2")
+  let end_of_tree = descend_leaf_at_end_boundary(root, 5, 2).unwrap()
+  inspect(end_of_tree.elem, content="{ch: \"b\", span: 3}")
+  inspect(end_of_tree.offset, content="3")
+}
+
+///|
+test "descend leaf at end boundary returns none at tree start" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 2), span=2),
+      Leaf(elem=run("b", 3), span=3),
+    ],
+    counts=[2, 3],
+    total=5,
+  )
+  inspect(
+    descend_leaf_at_end_boundary(root, 0, 2) is None,
+    content="true",
+  )
 }
 
 ///|

@@ -327,6 +327,48 @@ fn[T] cursor_next_leaf(cursor : Cursor[T]) -> Cursor[T]? {
 }
 
 ///|
+fn[T] cursor_as_leaf(cursor : Cursor[T]) -> LeafCursor[T]? {
+  Some(LeafCursor::from_cursor(cursor))
+}
+
+///|
+/// Descend to the leaf containing the first removed unit at `pos`.
+fn[T] descend_leaf_at(
+  node : OrderNode[T],
+  pos : Int,
+  min_degree : Int,
+) -> LeafCursor[T]? {
+  match descend(node, pos, min_degree, prepare_noop, find_slot, false) {
+    None => None
+    Some(cursor) => cursor_as_leaf(cursor)
+  }
+}
+
+///|
+/// Descend to the leaf touching the exclusive right boundary `end_`.
+/// At exact boundaries, this returns the leaf on the left with offset == span.
+fn[T] descend_leaf_at_end_boundary(
+  node : OrderNode[T],
+  end_ : Int,
+  min_degree : Int,
+) -> LeafCursor[T]? {
+  if end_ == 0 {
+    return None
+  }
+  match descend(
+    node,
+    end_,
+    min_degree,
+    prepare_noop,
+    find_slot_inclusive,
+    true,
+  ) {
+    None => None
+    Some(cursor) => cursor_as_leaf(cursor)
+  }
+}
+
+///|
 /// Walk sliced leaf content in span range [start, end_) using a single descent.
 fn[T : @rle.Sliceable] OrderNode::each_slice_in_range(
   self : OrderNode[T],

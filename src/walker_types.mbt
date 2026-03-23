@@ -21,6 +21,43 @@ priv struct Cursor[T] {
 }
 
 ///|
+/// Leaf-specialized cursor used by range planners.
+priv struct LeafCursor[T] {
+  path : Array[PathFrame[T]]
+  elem : T
+  span : Int
+  offset : Int
+}
+
+///|
+/// Lowest-common-ancestor interval targeted by a range splice.
+priv struct AncestorRange[T] {
+  prefix : Array[PathFrame[T]]
+  children : Array[OrderNode[T]]
+  counts : Array[Int]
+  start_idx : Int
+  end_idx : Int
+  child_height : Int
+}
+
+///|
+/// General subtree splice at the LCA child height.
+priv struct NodeSplice[T] {
+  prefix : Array[PathFrame[T]]
+  start_idx : Int
+  end_idx : Int
+  new_children : Array[OrderNode[T]]
+  leaf_delta : Int
+}
+
+///|
+/// Rebuilt boundary subtrees for a range splice.
+priv struct BoundarySubtrees[T] {
+  left : OrderNode[T]?
+  right : OrderNode[T]?
+}
+
+///|
 /// Read-only context passed to pure leaf splice computations.
 priv struct LeafContext[T] {
   elem : T
@@ -92,5 +129,15 @@ fn[T] LeafContext::from_cursor(cursor : Cursor[T]) -> LeafContext[T] {
     offset: cursor.offset,
     children: frame.children,
     child_idx: cursor.child_idx,
+  }
+}
+
+///|
+fn[T] LeafCursor::from_cursor(cursor : Cursor[T]) -> LeafCursor[T] {
+  {
+    path: cursor.path,
+    elem: cursor.leaf_elem,
+    span: cursor.leaf_span,
+    offset: cursor.offset,
   }
 }
