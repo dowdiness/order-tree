@@ -154,13 +154,12 @@ fn[T : @rle.Mergeable + @rle.Sliceable] delete_range_needs_merge_rebuild(
   }
 }
 
-///|
 /// Delete all elements in the span range [start, end_).
 ///
 /// Uses the in-place multi-leaf walker splice when the planned subtree edit
-/// preserves the local occupancy bound and does not need cross-gap merge
-/// repair. Otherwise it falls back to the kept-slice rebuild path so existing
-/// merge behavior stays exact.
+/// preserves the local occupancy bound and does not need kept-range merge
+/// normalization. Otherwise it falls back to the kept-slice rebuild path so
+/// existing merge behavior stays exact.
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(
   self : OrderTree[T],
   start : Int,

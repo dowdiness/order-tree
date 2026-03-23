@@ -392,6 +392,130 @@ test "plan delete range handles multi child lca splice" {
 }
 
 ///|
+test "plan delete range merges partial kept boundaries in same parent" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 3), span=3),
+      Leaf(elem=run("b", 2), span=2),
+      Leaf(elem=run("a", 2), span=2),
+    ],
+    counts=[3, 2, 2],
+    total=7,
+  )
+  let splice = plan_delete_range(root, 1, 6, 2).unwrap()
+  inspect(splice.new_children.length(), content="1")
+  inspect(splice.new_children[0].height(), content="0")
+  inspect(splice.new_children[0].total(), content="2")
+  inspect(splice.leaf_delta, content="-2")
+}
+
+///|
+test "plan delete range merges partial kept boundaries across higher lca" {
+  let left_child : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 3), span=3),
+      Leaf(elem=run("b", 2), span=2),
+    ],
+    counts=[3, 2],
+    total=5,
+  )
+  let right_child : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("c", 2), span=2),
+      Leaf(elem=run("a", 2), span=2),
+    ],
+    counts=[2, 2],
+    total=4,
+  )
+  let root : OrderNode[Run] = Internal(
+    children=[left_child, right_child],
+    counts=[5, 4],
+    total=9,
+  )
+  let splice = plan_delete_range(root, 1, 8, 2).unwrap()
+  inspect(splice.prefix.length(), content="0")
+  inspect(splice.start_idx, content="0")
+  inspect(splice.end_idx, content="2")
+  inspect(splice.new_children.length(), content="1")
+  inspect(splice.new_children[0].height(), content="1")
+  inspect(splice.new_children[0].total(), content="2")
+  inspect(splice.leaf_delta, content="-3")
+}
+
+///|
+test "plan delete range keeps split partial boundaries when not mergeable" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 3), span=3),
+      Leaf(elem=run("b", 2), span=2),
+      Leaf(elem=run("c", 2), span=2),
+    ],
+    counts=[3, 2, 2],
+    total=7,
+  )
+  let splice = plan_delete_range(root, 1, 6, 2).unwrap()
+  inspect(splice.new_children.length(), content="2")
+  inspect(splice.new_children[0].total(), content="1")
+  inspect(splice.new_children[1].total(), content="1")
+}
+
+///|
+test "plan delete range absorbs exact leaf-level gap merge" {
+  let root : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 3), span=3),
+      Leaf(elem=run("b", 2), span=2),
+      Leaf(elem=run("a", 2), span=2),
+    ],
+    counts=[3, 2, 2],
+    total=7,
+  )
+  let splice = plan_delete_range(root, 3, 5, 2).unwrap()
+  inspect(splice.start_idx, content="0")
+  inspect(splice.end_idx, content="3")
+  inspect(splice.new_children.length(), content="1")
+  inspect(splice.new_children[0].total(), content="5")
+  inspect(splice.leaf_delta, content="-2")
+}
+
+///|
+test "plan delete range absorbs exact higher-level gap merge" {
+  let left_child : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("x", 1), span=1),
+      Leaf(elem=run("a", 2), span=2),
+    ],
+    counts=[1, 2],
+    total=3,
+  )
+  let middle_child : OrderNode[Run] = Internal(
+    children=[Leaf(elem=run("b", 2), span=2)],
+    counts=[2],
+    total=2,
+  )
+  let right_child : OrderNode[Run] = Internal(
+    children=[
+      Leaf(elem=run("a", 3), span=3),
+      Leaf(elem=run("y", 1), span=1),
+    ],
+    counts=[3, 1],
+    total=4,
+  )
+  let root : OrderNode[Run] = Internal(
+    children=[left_child, middle_child, right_child],
+    counts=[3, 2, 4],
+    total=9,
+  )
+  let splice = plan_delete_range(root, 3, 5, 2).unwrap()
+  inspect(splice.start_idx, content="0")
+  inspect(splice.end_idx, content="3")
+  inspect(splice.new_children.length(), content="1")
+  inspect(splice.new_children[0].height(), content="1")
+  inspect(splice.new_children[0].total(), content="7")
+  inspect(splice.leaf_delta, content="-2")
+}
+
+///|
 test "propagate node splice updates root in place" {
   let children : Array[OrderNode[Run]] = [
     Leaf(elem=run("a", 2), span=2),

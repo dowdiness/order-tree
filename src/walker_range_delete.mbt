@@ -42,18 +42,101 @@ fn[T] rebuild_boundary_chain(
 }
 
 ///|
+fn[T : @rle.Sliceable] left_boundary_keep(start : LeafCursor[T]) -> T? {
+  if start.offset == 0 {
+    return None
+  }
+  Some(must_slice(start.elem, start=0, end=start.offset))
+}
+
+///|
+fn[T : @rle.Sliceable] right_boundary_keep(end_ : LeafCursor[T]) -> T? {
+  if end_.offset == end_.span {
+    return None
+  }
+  Some(must_slice(end_.elem, start=end_.offset, end=end_.span))
+}
+
+///|
+fn[T] merge_boundary_chain(
+  left_path_suffix : Array[PathFrame[T]],
+  right_path_suffix : Array[PathFrame[T]],
+  leaf : OrderNode[T],
+) -> OrderNode[T] {
+  if left_path_suffix.length() != right_path_suffix.length() {
+    abort("merge_boundary_chain: mismatched suffix heights")
+  }
+  let mut current = leaf
+  for i = left_path_suffix.length() - 1; i >= 0; i = i - 1 {
+    let left_frame = left_path_suffix[i]
+    let right_frame = right_path_suffix[i]
+    let children : Array[OrderNode[T]] = []
+    let counts : Array[Int] = []
+    for j = 0; j < left_frame.child_idx; j = j + 1 {
+      children.push(left_frame.children[j])
+      counts.push(left_frame.counts[j])
+    }
+    children.push(current)
+    counts.push(current.total())
+    for j = right_frame.child_idx + 1; j < right_frame.children.length(); j = j + 1 {
+      children.push(right_frame.children[j])
+      counts.push(right_frame.counts[j])
+    }
+    current = Internal(children=children, counts=counts, total=counts.sum())
+  }
+  current
+}
+
+///|
+fn[T] descend_rightmost(
+  node : OrderNode[T],
+  prefix : Array[PathFrame[T]],
+) -> Cursor[T] {
+  let path = copy_path(prefix, prefix.length())
+  fn step(current : OrderNode[T]) -> Cursor[T] {
+    match current {
+      Leaf(elem~, span~) => {
+        let child_idx = if path.length() == 0 {
+          0
+        } else {
+          path[path.length() - 1].child_idx
+        }
+        { path, leaf_elem: elem, leaf_span: span, offset: span, child_idx }
+      }
+      Internal(children~, counts~, ..) => {
+        let child_idx = children.length() - 1
+        path.push({ children, counts, child_idx })
+        step(children[child_idx])
+      }
+    }
+  }
+  step(node)
+}
+
+///|
+fn[T] leftmost_leaf_in_subtree(node : OrderNode[T]) -> LeafCursor[T] {
+  cursor_as_leaf(descend_leftmost(node, [])).unwrap()
+}
+
+///|
+fn[T] rightmost_leaf_in_subtree(node : OrderNode[T]) -> LeafCursor[T] {
+  cursor_as_leaf(descend_rightmost(node, [])).unwrap()
+}
+
+///|
 fn[T : @rle.Spanning + @rle.Sliceable] left_boundary_subtree(
   lca : AncestorRange[T],
   start : LeafCursor[T],
 ) -> OrderNode[T]? {
-  if start.offset == 0 {
-    return None
+  match left_boundary_keep(start) {
+    None => None
+    Some(kept) => {
+      let kept_leaf = Leaf(elem=kept, span=@rle.Spanning::span(kept))
+      let target_depth = lca.prefix.length()
+      let suffix = path_suffix_after_target(start.path, target_depth)
+      Some(rebuild_boundary_chain(suffix, kept_leaf, true))
+    }
   }
-  let kept = must_slice(start.elem, start=0, end=start.offset)
-  let kept_leaf = Leaf(elem=kept, span=@rle.Spanning::span(kept))
-  let target_depth = lca.prefix.length()
-  let suffix = path_suffix_after_target(start.path, target_depth)
-  Some(rebuild_boundary_chain(suffix, kept_leaf, true))
 }
 
 ///|
@@ -61,14 +144,37 @@ fn[T : @rle.Spanning + @rle.Sliceable] right_boundary_subtree(
   lca : AncestorRange[T],
   end_ : LeafCursor[T],
 ) -> OrderNode[T]? {
-  if end_.offset == end_.span {
-    return None
+  match right_boundary_keep(end_) {
+    None => None
+    Some(kept) => {
+      let kept_leaf = Leaf(elem=kept, span=@rle.Spanning::span(kept))
+      let target_depth = lca.prefix.length()
+      let suffix = path_suffix_after_target(end_.path, target_depth)
+      Some(rebuild_boundary_chain(suffix, kept_leaf, false))
+    }
   }
-  let kept = must_slice(end_.elem, start=end_.offset, end=end_.span)
-  let kept_leaf = Leaf(elem=kept, span=@rle.Spanning::span(kept))
-  let target_depth = lca.prefix.length()
-  let suffix = path_suffix_after_target(end_.path, target_depth)
-  Some(rebuild_boundary_chain(suffix, kept_leaf, false))
+}
+
+///|
+fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] merged_boundary_subtree(
+  lca : AncestorRange[T],
+  start : LeafCursor[T],
+  end_ : LeafCursor[T],
+) -> OrderNode[T]? {
+  match (left_boundary_keep(start), right_boundary_keep(end_)) {
+    (Some(left), Some(right)) => {
+      if !@rle.Mergeable::can_merge(left, right) {
+        return None
+      }
+      let merged = @rle.Mergeable::merge(left, right)
+      let merged_leaf = Leaf(elem=merged, span=@rle.Spanning::span(merged))
+      let target_depth = lca.prefix.length()
+      let left_suffix = path_suffix_after_target(start.path, target_depth)
+      let right_suffix = path_suffix_after_target(end_.path, target_depth)
+      Some(merge_boundary_chain(left_suffix, right_suffix, merged_leaf))
+    }
+    _ => None
+  }
 }
 
 ///|
@@ -141,6 +247,156 @@ fn[T] leaf_count_of_array(children : Array[OrderNode[T]]) -> Int {
 }
 
 ///|
+fn[T : @rle.Spanning + @rle.Mergeable] merge_leaf_nodes(
+  left : OrderNode[T],
+  right : OrderNode[T],
+) -> OrderNode[T]? {
+  match (left, right) {
+    (Leaf(elem=left_elem, ..), Leaf(elem=right_elem, ..)) =>
+      if @rle.Mergeable::can_merge(left_elem, right_elem) {
+        let merged = @rle.Mergeable::merge(left_elem, right_elem)
+        Some(Leaf(elem=merged, span=@rle.Spanning::span(merged)))
+      } else {
+        None
+      }
+    _ => None
+  }
+}
+
+///|
+fn[T : @rle.Spanning + @rle.Mergeable] absorb_leaf_level_gap_merge(
+  lca : AncestorRange[T],
+  start : LeafCursor[T],
+  end_ : LeafCursor[T],
+  new_children : Array[OrderNode[T]],
+  start_idx : Int,
+  end_idx : Int,
+) -> (Array[OrderNode[T]], Int, Int, Bool) {
+  if lca.child_height != 0 {
+    return (new_children, start_idx, end_idx, false)
+  }
+  let mut merged_children = new_children
+  let mut merged_start_idx = start_idx
+  let mut merged_end_idx = end_idx
+  let mut absorbed = false
+  if start.offset == 0 && end_.offset == end_.span &&
+    start_idx > 0 && end_idx < lca.children.length() && merged_children.length() == 0 {
+    match merge_leaf_nodes(lca.children[start_idx - 1], lca.children[end_idx]) {
+      Some(merged) => {
+        merged_children.push(merged)
+        merged_start_idx = start_idx - 1
+        merged_end_idx = end_idx + 1
+        absorbed = true
+      }
+      None => ()
+    }
+  }
+  if start.offset == 0 && merged_children.length() > 0 && merged_start_idx > 0 {
+    match merge_leaf_nodes(
+      lca.children[merged_start_idx - 1],
+      merged_children[0],
+    ) {
+      Some(merged) => {
+        merged_children[0] = merged
+        merged_start_idx = merged_start_idx - 1
+        absorbed = true
+      }
+      None => ()
+    }
+  }
+  if end_.offset == end_.span &&
+    merged_children.length() > 0 &&
+    merged_end_idx < lca.children.length() {
+    let last_idx = merged_children.length() - 1
+    match merge_leaf_nodes(
+      merged_children[last_idx],
+      lca.children[merged_end_idx],
+    ) {
+      Some(merged) => {
+        merged_children[last_idx] = merged
+        merged_end_idx = merged_end_idx + 1
+        absorbed = true
+      }
+      None => ()
+    }
+  }
+  (merged_children, merged_start_idx, merged_end_idx, absorbed)
+}
+
+///|
+fn[T : @rle.Spanning + @rle.Mergeable] absorb_subtree_gap_merge(
+  lca : AncestorRange[T],
+  start : LeafCursor[T],
+  end_ : LeafCursor[T],
+  new_children : Array[OrderNode[T]],
+  start_idx : Int,
+  end_idx : Int,
+) -> (Array[OrderNode[T]], Int, Int, Bool) {
+  if !(start.offset == 0 &&
+    end_.offset == end_.span &&
+    new_children.length() == 0 &&
+    start_idx > 0 &&
+    end_idx < lca.children.length()) {
+    return (new_children, start_idx, end_idx, false)
+  }
+  let left_edge = rightmost_leaf_in_subtree(lca.children[start_idx - 1])
+  let right_edge = leftmost_leaf_in_subtree(lca.children[end_idx])
+  if !@rle.Mergeable::can_merge(left_edge.elem, right_edge.elem) {
+    return (new_children, start_idx, end_idx, false)
+  }
+  let merged = @rle.Mergeable::merge(left_edge.elem, right_edge.elem)
+  let merged_leaf = Leaf(elem=merged, span=@rle.Spanning::span(merged))
+  let merged_subtree = merge_boundary_chain(
+    left_edge.path,
+    right_edge.path,
+    merged_leaf,
+  )
+  ([merged_subtree], start_idx - 1, end_idx + 1, true)
+}
+
+///|
+fn[T : @rle.Spanning + @rle.Mergeable] promote_empty_child_gap_merge(
+  lca : AncestorRange[T],
+) -> NodeSplice[T]? {
+  if lca.prefix.length() == 0 || lca.start_idx != 0 || lca.end_idx != lca.children.length() {
+    return None
+  }
+  let parent = lca.prefix[lca.prefix.length() - 1]
+  let child_idx = parent.child_idx
+  if child_idx == 0 || child_idx + 1 >= parent.children.length() {
+    return None
+  }
+  let left_edge = rightmost_leaf_in_subtree(parent.children[child_idx - 1])
+  let right_edge = leftmost_leaf_in_subtree(parent.children[child_idx + 1])
+  if !@rle.Mergeable::can_merge(left_edge.elem, right_edge.elem) {
+    return None
+  }
+  let merged = @rle.Mergeable::merge(left_edge.elem, right_edge.elem)
+  let merged_leaf = Leaf(elem=merged, span=@rle.Spanning::span(merged))
+  let merged_subtree = merge_boundary_chain(
+    left_edge.path,
+    right_edge.path,
+    merged_leaf,
+  )
+  let new_children : Array[OrderNode[T]] = [merged_subtree]
+  let removed_leaf_count = leaf_count_of_children(
+    parent.children,
+    child_idx - 1,
+    child_idx + 2,
+  )
+  Some({
+    prefix: copy_path(lca.prefix, lca.prefix.length() - 1),
+    children: parent.children,
+    counts: parent.counts,
+    start_idx: child_idx - 1,
+    end_idx: child_idx + 2,
+    new_children,
+    original_child_count: parent.children.length(),
+    leaf_delta: leaf_count_of_array(new_children) - removed_leaf_count,
+  })
+}
+
+///|
 fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] plan_delete_range(
   root : OrderNode[T],
   start : Int,
@@ -169,45 +425,90 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] plan_delete_range(
           let (elem, span) = pair
           new_children.push(Leaf(elem=elem, span=span))
         }
-        let removed_leaf_count = leaf_count_of_children(
-          lca.children,
+        let (normalized_children, normalized_start_idx, normalized_end_idx, _) = absorb_subtree_gap_merge(
+          lca,
+          start_leaf,
+          end_leaf,
+          new_children,
           lca.start_idx,
           lca.end_idx,
         )
+        let (normalized_children, normalized_start_idx, normalized_end_idx, _) =
+          absorb_leaf_level_gap_merge(
+            lca,
+            start_leaf,
+            end_leaf,
+            normalized_children,
+            normalized_start_idx,
+            normalized_end_idx,
+          )
+        let removed_leaf_count = leaf_count_of_children(
+          lca.children,
+          normalized_start_idx,
+          normalized_end_idx,
+        )
+        if normalized_children.length() == 0 {
+          match promote_empty_child_gap_merge(lca) {
+            Some(promoted) => return Some(promoted)
+            None => ()
+          }
+        }
         return Some({
           prefix: lca.prefix,
           children: lca.children,
           counts: lca.counts,
-          start_idx: lca.start_idx,
-          end_idx: lca.end_idx,
-          new_children,
+          start_idx: normalized_start_idx,
+          end_idx: normalized_end_idx,
+          new_children: normalized_children,
           original_child_count: lca.children.length(),
-          leaf_delta: leaf_count_of_array(new_children) - removed_leaf_count,
+          leaf_delta: leaf_count_of_array(normalized_children) - removed_leaf_count,
         })
       }
       let new_children : Array[OrderNode[T]] = []
-      match left_boundary_subtree(lca, start_leaf) {
-        Some(left) => new_children.push(left)
-        None => ()
+      match merged_boundary_subtree(lca, start_leaf, end_leaf) {
+        Some(merged) => new_children.push(merged)
+        None => {
+          match left_boundary_subtree(lca, start_leaf) {
+            Some(left) => new_children.push(left)
+            None => ()
+          }
+          match right_boundary_subtree(lca, end_leaf) {
+            Some(right) => new_children.push(right)
+            None => ()
+          }
+        }
       }
-      match right_boundary_subtree(lca, end_leaf) {
-        Some(right) => new_children.push(right)
-        None => ()
-      }
-      let removed_leaf_count = leaf_count_of_children(
-        lca.children,
+      let (normalized_children, normalized_start_idx, normalized_end_idx, _) = absorb_subtree_gap_merge(
+        lca,
+        start_leaf,
+        end_leaf,
+        new_children,
         lca.start_idx,
         lca.end_idx,
+      )
+      let (normalized_children, normalized_start_idx, normalized_end_idx, _) =
+        absorb_leaf_level_gap_merge(
+          lca,
+          start_leaf,
+          end_leaf,
+          normalized_children,
+          normalized_start_idx,
+          normalized_end_idx,
+        )
+      let removed_leaf_count = leaf_count_of_children(
+        lca.children,
+        normalized_start_idx,
+        normalized_end_idx,
       )
       Some({
         prefix: lca.prefix,
         children: lca.children,
         counts: lca.counts,
-        start_idx: lca.start_idx,
-        end_idx: lca.end_idx,
-        new_children,
+        start_idx: normalized_start_idx,
+        end_idx: normalized_end_idx,
+        new_children: normalized_children,
         original_child_count: lca.children.length(),
-        leaf_delta: leaf_count_of_array(new_children) - removed_leaf_count,
+        leaf_delta: leaf_count_of_array(normalized_children) - removed_leaf_count,
       })
     }
     _ => None
