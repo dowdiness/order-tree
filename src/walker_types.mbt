@@ -1,4 +1,8 @@
 ///|
+/// Walker contract:
+/// - descent owns navigation and may mutate internal nodes via prepare hooks
+/// - leaf actions read `LeafContext` and return pure `Splice` descriptions
+/// - propagation is the only phase that rewrites ancestors and handles splits
 /// One frame of the descent path from root to the focused leaf.
 priv struct PathFrame[T] {
   children : Array[OrderNode[T]]
