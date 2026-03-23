@@ -142,6 +142,24 @@ test "bench: iter (1000)" (b : @bench.T) {
 }
 
 ///|
+test "bench: view middle range (1000)" (b : @bench.T) {
+  let tree = OrderTree::from_array(Array::makei(1000, fn(i) { bi(i) }))
+  b.bench(fn() {
+    let view = tree.view(start=250, end=750)
+    b.keep(view.length())
+  })
+}
+
+///|
+test "bench: delete_range middle (1000)" (b : @bench.T) {
+  b.bench(fn() {
+    let tree = OrderTree::from_array(Array::makei(1000, fn(i) { bi(i) }))
+    tree.delete_range(250, 750)
+    b.keep(tree.span())
+  })
+}
+
+///|
 test "bench: min_degree=2 insert (1000)" (b : @bench.T) {
   b.bench(fn() {
     let tree : OrderTree[BItem] = OrderTree::new(min_degree=2)
@@ -263,6 +281,30 @@ test "bench: from_array mergeable (10000)" (b : @bench.T) {
   }
   b.bench(fn() {
     let tree = OrderTree::from_array(items, min_degree=10)
+    b.keep(tree.span())
+  })
+}
+
+///|
+test "bench: view middle mergeable (10000)" (b : @bench.T) {
+  let tree = OrderTree::from_array(
+    Array::makei(10000, fn(i) { bmi(i) }),
+    min_degree=10,
+  )
+  b.bench(fn() {
+    let view = tree.view(start=2500, end=7500)
+    b.keep(view.length())
+  })
+}
+
+///|
+test "bench: delete_range middle mergeable (10000)" (b : @bench.T) {
+  b.bench(fn() {
+    let tree = OrderTree::from_array(
+      Array::makei(10000, fn(i) { bmi(i) }),
+      min_degree=10,
+    )
+    tree.delete_range(2500, 7500)
     b.keep(tree.span())
   })
 }

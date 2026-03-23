@@ -137,6 +137,10 @@ pub fn[T : @rle.Sliceable] OrderTree::view(
 ///|
 /// Delete all elements in the span range [start, end_) by walking the kept
 /// ranges once and rebuilding the tree.
+///
+/// This is a bulk rebuild algorithm, not an in-place multi-leaf zipper splice.
+/// It keeps the implementation simple and lets `from_array` re-establish
+/// merging and internal-node shape in one pass.
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(
   self : OrderTree[T],
   start : Int,
