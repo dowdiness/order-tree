@@ -36,7 +36,7 @@ fn[T] rebuild_boundary_chain(
         counts.push(frame.counts[j])
       }
     }
-    current = Internal(children=children, counts=counts, total=counts.sum())
+    current = Internal(children~, counts~, total=counts.sum())
   }
   current
 }
@@ -78,11 +78,13 @@ fn[T] merge_boundary_chain(
     }
     children.push(current)
     counts.push(current.total())
-    for j = right_frame.child_idx + 1; j < right_frame.children.length(); j = j + 1 {
+    for j = right_frame.child_idx + 1
+        j < right_frame.children.length()
+        j = j + 1 {
       children.push(right_frame.children[j])
       counts.push(right_frame.counts[j])
     }
-    current = Internal(children=children, counts=counts, total=counts.sum())
+    current = Internal(children~, counts~, total=counts.sum())
   }
   current
 }
@@ -279,8 +281,11 @@ fn[T : @rle.Spanning + @rle.Mergeable] absorb_leaf_level_gap_merge(
   let mut merged_start_idx = start_idx
   let mut merged_end_idx = end_idx
   let mut absorbed = false
-  if start.offset == 0 && end_.offset == end_.span &&
-    start_idx > 0 && end_idx < lca.children.length() && merged_children.length() == 0 {
+  if start.offset == 0 &&
+    end_.offset == end_.span &&
+    start_idx > 0 &&
+    end_idx < lca.children.length() &&
+    merged_children.length() == 0 {
     match merge_leaf_nodes(lca.children[start_idx - 1], lca.children[end_idx]) {
       Some(merged) => {
         merged_children.push(merged)
@@ -292,10 +297,8 @@ fn[T : @rle.Spanning + @rle.Mergeable] absorb_leaf_level_gap_merge(
     }
   }
   if start.offset == 0 && merged_children.length() > 0 && merged_start_idx > 0 {
-    match merge_leaf_nodes(
-      lca.children[merged_start_idx - 1],
-      merged_children[0],
-    ) {
+    match
+      merge_leaf_nodes(lca.children[merged_start_idx - 1], merged_children[0]) {
       Some(merged) => {
         merged_children[0] = merged
         merged_start_idx = merged_start_idx - 1
@@ -308,10 +311,8 @@ fn[T : @rle.Spanning + @rle.Mergeable] absorb_leaf_level_gap_merge(
     merged_children.length() > 0 &&
     merged_end_idx < lca.children.length() {
     let last_idx = merged_children.length() - 1
-    match merge_leaf_nodes(
-      merged_children[last_idx],
-      lca.children[merged_end_idx],
-    ) {
+    match
+      merge_leaf_nodes(merged_children[last_idx], lca.children[merged_end_idx]) {
       Some(merged) => {
         merged_children[last_idx] = merged
         merged_end_idx = merged_end_idx + 1
@@ -358,7 +359,9 @@ fn[T : @rle.Spanning + @rle.Mergeable] absorb_subtree_gap_merge(
 fn[T : @rle.Spanning + @rle.Mergeable] promote_empty_child_gap_merge(
   lca : AncestorRange[T],
 ) -> NodeSplice[T]? {
-  if lca.prefix.length() == 0 || lca.start_idx != 0 || lca.end_idx != lca.children.length() {
+  if lca.prefix.length() == 0 ||
+    lca.start_idx != 0 ||
+    lca.end_idx != lca.children.length() {
     return None
   }
   let parent = lca.prefix[lca.prefix.length() - 1]
@@ -414,7 +417,8 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] plan_delete_range(
     (Some(start_leaf), Some(end_leaf)) => {
       let lca = lowest_common_ancestor_range(start_leaf, end_leaf)
       if start_leaf.path.length() == end_leaf.path.length() &&
-        shared_prefix_length(start_leaf.path, end_leaf.path) == start_leaf.path.length() {
+        shared_prefix_length(start_leaf.path, end_leaf.path) ==
+        start_leaf.path.length() {
         let replacement = compute_single_leaf_delete_range(
           start_leaf,
           start_leaf.offset,
@@ -423,7 +427,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] plan_delete_range(
         let new_children : Array[OrderNode[T]] = []
         for pair in replacement {
           let (elem, span) = pair
-          new_children.push(Leaf(elem=elem, span=span))
+          new_children.push(Leaf(elem~, span~))
         }
         let (normalized_children, normalized_start_idx, normalized_end_idx, _) = absorb_subtree_gap_merge(
           lca,
@@ -433,15 +437,9 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] plan_delete_range(
           lca.start_idx,
           lca.end_idx,
         )
-        let (normalized_children, normalized_start_idx, normalized_end_idx, _) =
-          absorb_leaf_level_gap_merge(
-            lca,
-            start_leaf,
-            end_leaf,
-            normalized_children,
-            normalized_start_idx,
-            normalized_end_idx,
-          )
+        let (normalized_children, normalized_start_idx, normalized_end_idx, _) = absorb_leaf_level_gap_merge(
+          lca, start_leaf, end_leaf, normalized_children, normalized_start_idx, normalized_end_idx,
+        )
         let removed_leaf_count = leaf_count_of_children(
           lca.children,
           normalized_start_idx,
@@ -461,7 +459,8 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] plan_delete_range(
           end_idx: normalized_end_idx,
           new_children: normalized_children,
           original_child_count: lca.children.length(),
-          leaf_delta: leaf_count_of_array(normalized_children) - removed_leaf_count,
+          leaf_delta: leaf_count_of_array(normalized_children) -
+          removed_leaf_count,
         })
       }
       let new_children : Array[OrderNode[T]] = []
@@ -486,15 +485,9 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] plan_delete_range(
         lca.start_idx,
         lca.end_idx,
       )
-      let (normalized_children, normalized_start_idx, normalized_end_idx, _) =
-        absorb_leaf_level_gap_merge(
-          lca,
-          start_leaf,
-          end_leaf,
-          normalized_children,
-          normalized_start_idx,
-          normalized_end_idx,
-        )
+      let (normalized_children, normalized_start_idx, normalized_end_idx, _) = absorb_leaf_level_gap_merge(
+        lca, start_leaf, end_leaf, normalized_children, normalized_start_idx, normalized_end_idx,
+      )
       let removed_leaf_count = leaf_count_of_children(
         lca.children,
         normalized_start_idx,
@@ -508,7 +501,8 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] plan_delete_range(
         end_idx: normalized_end_idx,
         new_children: normalized_children,
         original_child_count: lca.children.length(),
-        leaf_delta: leaf_count_of_array(normalized_children) - removed_leaf_count,
+        leaf_delta: leaf_count_of_array(normalized_children) -
+        removed_leaf_count,
       })
     }
     _ => None

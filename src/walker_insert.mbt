@@ -133,11 +133,7 @@ fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] compute_insert_splice(
     new_leaves.push((right_part, right_span))
   }
   {
-    splice: {
-      start_idx: ctx.child_idx,
-    end_idx: ctx.child_idx + 1,
-    new_leaves,
-  },
-  leaf_delta: new_leaves.length() - 1,
+    splice: { start_idx: ctx.child_idx, end_idx: ctx.child_idx + 1, new_leaves },
+    leaf_delta: new_leaves.length() - 1,
   }
 }

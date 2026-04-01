@@ -79,7 +79,7 @@ fn[T] check_occupancy(
       let n = children.length()
       let min_children = min_degree
       let max_children = 2 * min_degree
-      if not(is_root) && n < min_children {
+      if !is_root && n < min_children {
         return Some(
           "internal node has \{n} children, below minimum \{min_children}",
         )

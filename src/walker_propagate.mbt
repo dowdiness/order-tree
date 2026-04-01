@@ -46,7 +46,7 @@ fn[T] apply_splice(
   }
   for i = splice.new_leaves.length() - 1; i >= 0; i = i - 1 {
     let (elem, span) = splice.new_leaves[i]
-    children.insert_at(splice.start_idx, Leaf(elem=elem, span=span))
+    children.insert_at(splice.start_idx, Leaf(elem~, span~))
     counts.insert_at(splice.start_idx, span)
   }
 }
@@ -85,7 +85,7 @@ fn[T] maybe_split(
     let (left, right) = split_internal(children, counts)
     (left, Some(right))
   } else {
-    (Internal(children=children, counts=counts, total=total), None)
+    (Internal(children~, counts~, total~), None)
   }
 }
 

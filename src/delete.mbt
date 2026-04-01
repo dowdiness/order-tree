@@ -29,14 +29,15 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_at
       if pos < 0 || pos >= root.total() {
         return None
       }
-      match descend(
-        root,
-        pos,
-        self.min_degree,
-        prepare_ensure_min,
-        find_slot,
-        false,
-      ) {
+      match
+        descend(
+          root,
+          pos,
+          self.min_degree,
+          prepare_ensure_min,
+          find_slot,
+          false,
+        ) {
         None => None
         Some(cursor) => {
           let leaf_ctx = LeafContext::from_cursor(cursor)

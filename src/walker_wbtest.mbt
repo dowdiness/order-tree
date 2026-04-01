@@ -11,7 +11,7 @@ priv struct Run {
 
 ///|
 fn wi(value : String) -> WalkerItem {
-  { value: value }
+  { value, }
 }
 
 ///|
@@ -40,13 +40,14 @@ impl @rle.Mergeable for Run with merge(self : Run, other : Run) -> Run {
 }
 
 ///|
-impl @rle.Sliceable for Run with slice(
-  self : Run,
-  start~ : Int,
-  end~ : Int,
-) -> Result[Run, @rle.RleError] {
+impl @rle.Sliceable for Run with slice(self : Run, start~ : Int, end~ : Int) -> Result[
+  Run,
+  @rle.RleError,
+] {
   if start < 0 || end < start || end > self.span {
-    return Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
+    return Err(
+      @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex),
+    )
   }
   Ok({ ch: self.ch, span: end - start })
 }
@@ -98,10 +99,7 @@ test "cursor as leaf preserves leaf payload" {
 ///|
 test "descend keeps insert boundary on current leaf" {
   let root : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 2), span=2),
-      Leaf(elem=run("b", 2), span=2),
-    ],
+    children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
@@ -118,10 +116,7 @@ test "descend keeps insert boundary on current leaf" {
 ///|
 test "descend leaf at uses strict boundary semantics" {
   let root : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 2), span=2),
-      Leaf(elem=run("b", 2), span=2),
-    ],
+    children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
@@ -133,10 +128,7 @@ test "descend leaf at uses strict boundary semantics" {
 ///|
 test "descend leaf at end boundary stays on left leaf" {
   let root : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 2), span=2),
-      Leaf(elem=run("b", 3), span=3),
-    ],
+    children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 3), span=3)],
     counts=[2, 3],
     total=5,
   )
@@ -151,17 +143,11 @@ test "descend leaf at end boundary stays on left leaf" {
 ///|
 test "descend leaf at end boundary returns none at tree start" {
   let root : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 2), span=2),
-      Leaf(elem=run("b", 3), span=3),
-    ],
+    children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 3), span=3)],
     counts=[2, 3],
     total=5,
   )
-  inspect(
-    descend_leaf_at_end_boundary(root, 0, 2) is None,
-    content="true",
-  )
+  inspect(descend_leaf_at_end_boundary(root, 0, 2) is None, content="true")
 }
 
 ///|
@@ -177,10 +163,7 @@ test "order node height counts edges to leaf" {
 ///|
 test "shared prefix length handles same leaf and divergence" {
   let root : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 1), span=1),
-      Leaf(elem=run("b", 1), span=1),
-    ],
+    children=[Leaf(elem=run("a", 1), span=1), Leaf(elem=run("b", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
@@ -193,10 +176,7 @@ test "shared prefix length handles same leaf and divergence" {
 ///|
 test "lowest common ancestor range handles same leaf" {
   let root : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 3), span=3),
-      Leaf(elem=run("b", 2), span=2),
-    ],
+    children=[Leaf(elem=run("a", 3), span=3), Leaf(elem=run("b", 2), span=2)],
     counts=[3, 2],
     total=5,
   )
@@ -232,18 +212,12 @@ test "lowest common ancestor range handles same parent different children" {
 ///|
 test "lowest common ancestor range handles higher level divergence" {
   let left_child : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 1), span=1),
-      Leaf(elem=run("b", 1), span=1),
-    ],
+    children=[Leaf(elem=run("a", 1), span=1), Leaf(elem=run("b", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
   let right_child : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("c", 1), span=1),
-      Leaf(elem=run("d", 1), span=1),
-    ],
+    children=[Leaf(elem=run("c", 1), span=1), Leaf(elem=run("d", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
@@ -264,10 +238,7 @@ test "lowest common ancestor range handles higher level divergence" {
 ///|
 test "left boundary subtree returns none when start is on leaf boundary" {
   let root : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 2), span=2),
-      Leaf(elem=run("b", 2), span=2),
-    ],
+    children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
@@ -280,10 +251,7 @@ test "left boundary subtree returns none when start is on leaf boundary" {
 ///|
 test "right boundary subtree returns none when end is on leaf boundary" {
   let root : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 2), span=2),
-      Leaf(elem=run("b", 2), span=2),
-    ],
+    children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
@@ -296,10 +264,7 @@ test "right boundary subtree returns none when end is on leaf boundary" {
 ///|
 test "left boundary subtree rebuilds to lca child height" {
   let left_child : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 2), span=2),
-      Leaf(elem=run("b", 1), span=1),
-    ],
+    children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 1), span=1)],
     counts=[2, 1],
     total=3,
   )
@@ -329,10 +294,7 @@ test "right boundary subtree rebuilds to lca child height" {
     total=2,
   )
   let right_child : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("b", 1), span=1),
-      Leaf(elem=run("c", 2), span=2),
-    ],
+    children=[Leaf(elem=run("b", 1), span=1), Leaf(elem=run("c", 2), span=2)],
     counts=[1, 2],
     total=3,
   )
@@ -352,10 +314,7 @@ test "right boundary subtree rebuilds to lca child height" {
 ///|
 test "plan delete range handles same leaf splice" {
   let root : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 5), span=5),
-      Leaf(elem=run("b", 2), span=2),
-    ],
+    children=[Leaf(elem=run("a", 5), span=5), Leaf(elem=run("b", 2), span=2)],
     counts=[5, 2],
     total=7,
   )
@@ -412,18 +371,12 @@ test "plan delete range merges partial kept boundaries in same parent" {
 ///|
 test "plan delete range merges partial kept boundaries across higher lca" {
   let left_child : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 3), span=3),
-      Leaf(elem=run("b", 2), span=2),
-    ],
+    children=[Leaf(elem=run("a", 3), span=3), Leaf(elem=run("b", 2), span=2)],
     counts=[3, 2],
     total=5,
   )
   let right_child : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("c", 2), span=2),
-      Leaf(elem=run("a", 2), span=2),
-    ],
+    children=[Leaf(elem=run("c", 2), span=2), Leaf(elem=run("a", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
@@ -481,10 +434,7 @@ test "plan delete range absorbs exact leaf-level gap merge" {
 ///|
 test "plan delete range absorbs exact higher-level gap merge" {
   let left_child : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("x", 1), span=1),
-      Leaf(elem=run("a", 2), span=2),
-    ],
+    children=[Leaf(elem=run("x", 1), span=1), Leaf(elem=run("a", 2), span=2)],
     counts=[1, 2],
     total=3,
   )
@@ -494,10 +444,7 @@ test "plan delete range absorbs exact higher-level gap merge" {
     total=2,
   )
   let right_child : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 3), span=3),
-      Leaf(elem=run("y", 1), span=1),
-    ],
+    children=[Leaf(elem=run("a", 3), span=3), Leaf(elem=run("y", 1), span=1)],
     counts=[3, 1],
     total=4,
   )
@@ -555,10 +502,7 @@ test "propagate node splice updates root in place" {
 ///|
 test "propagate node splice updates ancestor counts" {
   let left_child : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 2), span=2),
-      Leaf(elem=run("b", 2), span=2),
-    ],
+    children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
@@ -569,11 +513,9 @@ test "propagate node splice updates ancestor counts" {
   )
   let root_children : Array[OrderNode[Run]] = [left_child, right_child]
   let root_counts = [4, 3]
-  let prefix : Array[PathFrame[Run]] = [{
-    children: root_children,
-    counts: root_counts,
-    child_idx: 0,
-  }]
+  let prefix : Array[PathFrame[Run]] = [
+    { children: root_children, counts: root_counts, child_idx: 0 },
+  ]
   let target_children : Array[OrderNode[Run]] = [
     Leaf(elem=run("a", 2), span=2),
     Leaf(elem=run("b", 2), span=2),
@@ -607,18 +549,12 @@ test "propagate node splice updates ancestor counts" {
 ///|
 test "descend re-finds slot after ensure-min merge" {
   let left : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("a", 1), span=1),
-      Leaf(elem=run("b", 1), span=1),
-    ],
+    children=[Leaf(elem=run("a", 1), span=1), Leaf(elem=run("b", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
   let right : OrderNode[Run] = Internal(
-    children=[
-      Leaf(elem=run("c", 1), span=1),
-      Leaf(elem=run("d", 1), span=1),
-    ],
+    children=[Leaf(elem=run("c", 1), span=1), Leaf(elem=run("d", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
@@ -670,8 +606,14 @@ test "delete_at collapses root after propagated child removal" {
   ignore(tree.delete_at(0))
   ignore(tree.delete_at(0))
   inspect(tree.span(), content="2")
-  inspect(tree.find(0).map(fn(fr) { fr.elem }), content="Some({ch: \"4\", span: 1})")
-  inspect(tree.find(1).map(fn(fr) { fr.elem }), content="Some({ch: \"5\", span: 1})")
+  inspect(
+    tree.find(0).map(fn(fr) { fr.elem }),
+    content="Some({ch: \"4\", span: 1})",
+  )
+  inspect(
+    tree.find(1).map(fn(fr) { fr.elem }),
+    content="Some({ch: \"5\", span: 1})",
+  )
   match tree.root {
     Some(Internal(children~, ..)) => inspect(children.length(), content="2")
     _ => inspect("bad root", content="\"unexpected\"")

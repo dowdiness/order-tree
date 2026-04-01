@@ -13,22 +13,18 @@ import {
 pub struct FindResult[T] {
   elem : T
   offset : Int
-}
-pub impl[T : Eq] Eq for FindResult[T]
-pub impl[T : Show] Show for FindResult[T]
+} derive(Eq, Show)
 
 pub(all) enum OrderNode[T] {
   Leaf(elem~ : T, span~ : Int)
   Internal(children~ : Array[OrderNode[T]], counts~ : Array[Int], total~ : Int)
-}
-pub impl[T : Eq] Eq for OrderNode[T]
-pub impl[T : Show] Show for OrderNode[T]
+} derive(Eq, Show)
 
 pub struct OrderTree[T] {
   mut root : OrderNode[T]?
   min_degree : Int
   mut size : Int
-}
+} derive(Eq, Show)
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_at(Self[T], Int) -> T?
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(Self[T], Int, Int) -> Unit
 pub fn[T] OrderTree::each(Self[T], (T) -> Unit) -> Unit
@@ -44,11 +40,9 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::set_at(Se
 pub fn[T] OrderTree::size(Self[T]) -> Int
 pub fn[T] OrderTree::to_array(Self[T]) -> Array[T]
 #alias("_[_:_]")
-pub fn[T : @rle.Spanning + @rle.Sliceable] OrderTree::view(Self[T], start? : Int, end? : Int) -> Array[T]
+pub fn[T : @rle.Sliceable] OrderTree::view(Self[T], start? : Int, end? : Int) -> Array[T]
 pub impl[T] @rle.HasLength for OrderTree[T]
 pub impl[T] @rle.Spanning for OrderTree[T]
-pub impl[T : Eq] Eq for OrderTree[T]
-pub impl[T : Show] Show for OrderTree[T]
 
 // Type aliases
 

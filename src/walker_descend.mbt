@@ -5,9 +5,10 @@ fn find_slot(counts : Array[Int], pos : Int, _total : Int) -> (Int, Int) {
   if counts.length() == 0 {
     abort("find_slot: empty counts")
   }
-  match counts[:counts.length() - 1].find_by_sum(pos, fn(i, remaining) {
-    Some((i, remaining))
-  }) {
+  match
+    counts[:counts.length() - 1].find_by_sum(pos, fn(i, remaining) {
+      Some((i, remaining))
+    }) {
     Some(pair) => pair
     None => {
       let last = counts.length() - 1
@@ -19,13 +20,18 @@ fn find_slot(counts : Array[Int], pos : Int, _total : Int) -> (Int, Int) {
 ///|
 /// Find child index and remaining offset for position `pos`.
 /// Uses inclusive `<=` slot selection for insert-at-boundary descent.
-fn find_slot_inclusive(counts : Array[Int], pos : Int, _total : Int) -> (Int, Int) {
+fn find_slot_inclusive(
+  counts : Array[Int],
+  pos : Int,
+  _total : Int,
+) -> (Int, Int) {
   if counts.length() == 0 {
     abort("find_slot_inclusive: empty counts")
   }
-  match counts[:counts.length() - 1].find_by_sum_inclusive(pos, fn(i, remaining) {
-    Some((i, remaining))
-  }) {
+  match
+    counts[:counts.length() - 1].find_by_sum_inclusive(pos, fn(i, remaining) {
+      Some((i, remaining))
+    }) {
     Some(pair) => pair
     None => {
       let last = counts.length() - 1
@@ -41,6 +47,7 @@ fn[T] prepare_noop(
   _idx : Int,
   _min_degree : Int,
 ) -> Unit {
+
 }
 
 ///|
@@ -173,7 +180,7 @@ fn[T] ensure_min_children(
   idx : Int,
   min_degree : Int,
 ) -> Unit {
-  if not(children[idx].needs_rebalance(min_degree)) {
+  if !children[idx].needs_rebalance(min_degree) {
     return
   }
   if idx > 0 && children[idx - 1].can_lend(min_degree) {
@@ -208,7 +215,7 @@ fn[T] prepare_split(
   idx : Int,
   min_degree : Int,
 ) -> Unit {
-  if not(children[idx].is_full(min_degree)) {
+  if !children[idx].is_full(min_degree) {
     return
   }
   match children[idx] {
@@ -244,15 +251,13 @@ fn[T] descend(
           } else {
             path[path.length() - 1].child_idx
           }
-          return Some(
-            {
-              path,
-              leaf_elem: elem,
-              leaf_span: span,
-              offset: current_pos,
-              child_idx,
-            },
-          )
+          return Some({
+            path,
+            leaf_elem: elem,
+            leaf_span: span,
+            offset: current_pos,
+            child_idx,
+          })
         } else {
           None
         }
@@ -261,9 +266,7 @@ fn[T] descend(
         prepare(children, counts, pre_idx, min_degree)
         let updated_total = counts.sum()
         let (child_idx, remaining) = find_slot_fn(
-          counts,
-          current_pos,
-          updated_total,
+          counts, current_pos, updated_total,
         )
         path.push({ children, counts, child_idx })
         step(children[child_idx], remaining)
@@ -355,14 +358,8 @@ fn[T] descend_leaf_at_end_boundary(
   if end_ == 0 {
     return None
   }
-  match descend(
-    node,
-    end_,
-    min_degree,
-    prepare_noop,
-    find_slot_inclusive,
-    true,
-  ) {
+  match
+    descend(node, end_, min_degree, prepare_noop, find_slot_inclusive, true) {
     None => None
     Some(cursor) => cursor_as_leaf(cursor)
   }
