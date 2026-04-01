@@ -158,6 +158,7 @@ fn[T : @rle.Mergeable + @rle.Sliceable] delete_range_needs_merge_rebuild(
   }
 }
 
+///|
 /// Delete all elements in the span range [start, end_).
 ///
 /// Uses the in-place multi-leaf walker splice when the planned subtree edit
@@ -189,8 +190,7 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_ra
       match plan_delete_range(root, start, end_, self.min_degree) {
         None => rebuild()
         Some(splice) => {
-          let new_child_count =
-            splice.original_child_count -
+          let new_child_count = splice.original_child_count -
             (splice.end_idx - splice.start_idx) +
             splice.new_children.length()
           if (splice.prefix.length() > 0 && new_child_count < self.min_degree) ||

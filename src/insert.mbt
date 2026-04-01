@@ -17,21 +17,22 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::insert_at
   }
   match self.root {
     None => {
-      let leaf = Leaf(elem=elem, span=elem_span)
+      let leaf = Leaf(elem~, span=elem_span)
       self.root = Some(
         Internal(children=[leaf], counts=[elem_span], total=elem_span),
       )
       self.size = 1
     }
-    Some(root) => {
-      match descend(
-        root,
-        clamped_pos,
-        self.min_degree,
-        prepare_split,
-        find_slot_inclusive,
-        true,
-      ) {
+    Some(root) =>
+      match
+        descend(
+          root,
+          clamped_pos,
+          self.min_degree,
+          prepare_split,
+          find_slot_inclusive,
+          true,
+        ) {
         None => abort("OrderTree::insert_at: descent failed at valid position")
         Some(cursor) => {
           let leaf_ctx = LeafContext::from_cursor(cursor)
@@ -59,6 +60,5 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::insert_at
           self.size = self.size + propagated.leaf_delta
         }
       }
-    }
   }
 }
