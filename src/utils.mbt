@@ -65,11 +65,13 @@ fn[R] ArrayView::find_by_sum(
   pos : Int,
   f : (Int, Int) -> R?,
 ) -> R? {
-  loop (self, pos, 0) {
-    ([], _, _) => None
-    ([count, ..], remaining, i) if remaining < count => f(i, remaining)
-    ([count, .. rest], remaining, i) =>
-      continue (rest, remaining - count, i + 1)
+  for view = self, remaining = pos, i = 0 {
+    match (view, remaining, i) {
+      ([], _, _) => break None
+      ([count, ..], remaining, i) if remaining < count => break f(i, remaining)
+      ([count, .. rest], remaining, i) =>
+        continue rest, remaining - count, i + 1
+    }
   }
 }
 
@@ -81,10 +83,12 @@ fn[R] ArrayView::find_by_sum_inclusive(
   pos : Int,
   f : (Int, Int) -> R?,
 ) -> R? {
-  loop (self, pos, 0) {
-    ([], _, _) => None
-    ([count, ..], remaining, i) if remaining <= count => f(i, remaining)
-    ([count, .. rest], remaining, i) =>
-      continue (rest, remaining - count, i + 1)
+  for view = self, remaining = pos, i = 0 {
+    match (view, remaining, i) {
+      ([], _, _) => break None
+      ([count, ..], remaining, i) if remaining <= count => break f(i, remaining)
+      ([count, .. rest], remaining, i) =>
+        continue rest, remaining - count, i + 1
+    }
   }
 }
