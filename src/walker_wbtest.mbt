@@ -7,7 +7,12 @@ priv struct WalkerItem {
 priv struct Run {
   ch : String
   span : Int
-} derive(Show)
+} derive(Debug)
+
+///|
+impl Show for Run with output(self, logger) {
+  logger.write_string(@debug.to_string(self))
+}
 
 ///|
 fn wi(value : String) -> WalkerItem {
@@ -91,7 +96,12 @@ test "cursor as leaf preserves leaf payload" {
     child_idx: 0,
   }
   let leaf = cursor_as_leaf(cursor).unwrap()
-  inspect(leaf.elem, content="{ch: \"x\", span: 3}")
+  inspect(
+    leaf.elem,
+    content=(
+      #|{ ch: "x", span: 3 }
+    ),
+  )
   inspect(leaf.span, content="3")
   inspect(leaf.offset, content="1")
 }
@@ -108,7 +118,12 @@ test "descend keeps insert boundary on current leaf" {
     Some(cursor) => {
       inspect(cursor.child_idx, content="0")
       inspect(cursor.offset, content="2")
-      inspect(cursor.leaf_elem, content="{ch: \"a\", span: 2}")
+      inspect(
+        cursor.leaf_elem,
+        content=(
+          #|{ ch: "a", span: 2 }
+        ),
+      )
     }
   }
 }
@@ -121,7 +136,12 @@ test "descend leaf at uses strict boundary semantics" {
     total=4,
   )
   let leaf = descend_leaf_at(root, 2, 2).unwrap()
-  inspect(leaf.elem, content="{ch: \"b\", span: 2}")
+  inspect(
+    leaf.elem,
+    content=(
+      #|{ ch: "b", span: 2 }
+    ),
+  )
   inspect(leaf.offset, content="0")
 }
 
@@ -133,10 +153,20 @@ test "descend leaf at end boundary stays on left leaf" {
     total=5,
   )
   let boundary = descend_leaf_at_end_boundary(root, 2, 2).unwrap()
-  inspect(boundary.elem, content="{ch: \"a\", span: 2}")
+  inspect(
+    boundary.elem,
+    content=(
+      #|{ ch: "a", span: 2 }
+    ),
+  )
   inspect(boundary.offset, content="2")
   let end_of_tree = descend_leaf_at_end_boundary(root, 5, 2).unwrap()
-  inspect(end_of_tree.elem, content="{ch: \"b\", span: 3}")
+  inspect(
+    end_of_tree.elem,
+    content=(
+      #|{ ch: "b", span: 3 }
+    ),
+  )
   inspect(end_of_tree.offset, content="3")
 }
 
@@ -570,7 +600,12 @@ test "descend re-finds slot after ensure-min merge" {
       inspect(cursor.path[0].children.length(), content="1")
       inspect(cursor.child_idx, content="2")
       inspect(cursor.offset, content="0")
-      inspect(cursor.leaf_elem, content="{ch: \"c\", span: 1}")
+      inspect(
+        cursor.leaf_elem,
+        content=(
+          #|{ ch: "c", span: 1 }
+        ),
+      )
     }
   }
 }
@@ -608,11 +643,15 @@ test "delete_at collapses root after propagated child removal" {
   inspect(tree.span(), content="2")
   inspect(
     tree.find(0).map(fn(fr) { fr.elem }),
-    content="Some({ch: \"4\", span: 1})",
+    content=(
+      #|Some({ ch: "4", span: 1 })
+    ),
   )
   inspect(
     tree.find(1).map(fn(fr) { fr.elem }),
-    content="Some({ch: \"5\", span: 1})",
+    content=(
+      #|Some({ ch: "5", span: 1 })
+    ),
   )
   match tree.root {
     Some(Internal(children~, ..)) => inspect(children.length(), content="2")

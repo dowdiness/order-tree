@@ -1,6 +1,7 @@
 import {
   "dowdiness/rle" @rle,
   "moonbitlang/core/bench" @bench,
+  "moonbitlang/core/debug" @debug,
 }
 
 import {
