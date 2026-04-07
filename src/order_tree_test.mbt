@@ -1,7 +1,12 @@
 ///|
 priv struct TItem {
   value : Int
-} derive(Show)
+} derive(Debug)
+
+///|
+impl Show for TItem with output(self, logger) {
+  logger.write_string(@debug.to_string(self))
+}
 
 ///|
 impl @rle.HasLength for TItem with length(_self) -> Int {

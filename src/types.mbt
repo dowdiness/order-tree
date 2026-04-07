@@ -3,7 +3,12 @@
 pub struct FindResult[T] {
   elem : T
   offset : Int
-} derive(Show, Eq)
+} derive(Debug, Eq)
+
+///|
+pub impl[T : Debug] Show for FindResult[T] with output(self, logger) {
+  logger.write_string(@debug.to_string(self))
+}
 
 ///|
 /// A node in the order-statistic B-tree.
@@ -12,7 +17,7 @@ pub struct FindResult[T] {
 pub(all) enum OrderNode[T] {
   Leaf(elem~ : T, span~ : Int)
   Internal(children~ : Array[OrderNode[T]], counts~ : Array[Int], total~ : Int)
-} derive(Show, Eq)
+} derive(Debug, Eq)
 
 ///|
 const DEFAULT_MIN_DEGREE : Int = 10
@@ -25,4 +30,4 @@ pub struct OrderTree[T] {
   mut root : OrderNode[T]?
   min_degree : Int
   mut size : Int
-} derive(Show, Eq)
+} derive(Debug, Eq)

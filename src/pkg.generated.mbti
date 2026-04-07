@@ -3,6 +3,7 @@ package "dowdiness/order-tree"
 
 import {
   "dowdiness/rle",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -13,18 +14,19 @@ import {
 pub struct FindResult[T] {
   elem : T
   offset : Int
-} derive(Eq, Show)
+} derive(Eq, @debug.Debug)
+pub impl[T : @debug.Debug] Show for FindResult[T]
 
 pub(all) enum OrderNode[T] {
   Leaf(elem~ : T, span~ : Int)
   Internal(children~ : Array[OrderNode[T]], counts~ : Array[Int], total~ : Int)
-} derive(Eq, Show)
+} derive(Eq, @debug.Debug)
 
 pub struct OrderTree[T] {
   mut root : OrderNode[T]?
   min_degree : Int
   mut size : Int
-} derive(Eq, Show)
+} derive(Eq, @debug.Debug)
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_at(Self[T], Int) -> T?
 pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(Self[T], Int, Int) -> Unit
 pub fn[T] OrderTree::each(Self[T], (T) -> Unit) -> Unit
