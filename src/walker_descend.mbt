@@ -367,7 +367,7 @@ fn[T] descend_leaf_at_end_boundary(
 
 ///|
 /// Walk sliced leaf content in span range [start, end_) using a single descent.
-fn[T : @rle.Sliceable] OrderNode::each_slice_in_range(
+fn[T : @btree.BTreeElem] OrderNode::each_slice_in_range(
   self : OrderNode[T],
   start : Int,
   end_ : Int,

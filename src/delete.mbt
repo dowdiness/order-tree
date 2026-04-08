@@ -19,7 +19,7 @@ fn[T] normalize_root_after_delete(root : OrderNode[T]) -> OrderNode[T]? {
 ///|
 /// Delete the element at the given span position from the tree.
 /// Returns a single-unit slice of the deleted element.
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_at(
+pub fn[T : @btree.BTreeElem] OrderTree::delete_at(
   self : OrderTree[T],
   pos : Int,
 ) -> T? {

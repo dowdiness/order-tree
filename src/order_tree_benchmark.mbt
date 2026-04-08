@@ -36,6 +36,9 @@ impl @rle.Sliceable for BItem with slice(self, start~ : Int, end~ : Int) -> Resu
 }
 
 ///|
+impl @btree.BTreeElem for BItem
+
+///|
 fn bi(v : Int) -> BItem {
   { value: v }
 }
@@ -256,6 +259,9 @@ impl @rle.Sliceable for BMItem with slice(self, start~ : Int, end~ : Int) -> Res
     Ok({ start: self.start + start, count: end - start })
   }
 }
+
+///|
+impl @btree.BTreeElem for BMItem
 
 ///|
 fn bmi(v : Int) -> BMItem {

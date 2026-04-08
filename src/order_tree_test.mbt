@@ -41,6 +41,9 @@ impl @rle.Sliceable for TItem with slice(self, start~ : Int, end~ : Int) -> Resu
 }
 
 ///|
+impl @btree.BTreeElem for TItem
+
+///|
 fn ti(v : Int) -> TItem {
   { value: v }
 }
@@ -490,6 +493,9 @@ impl @rle.Sliceable for MItem with slice(self, start~ : Int, end~ : Int) -> Resu
     Ok({ start: self.start + start, count: end - start })
   }
 }
+
+///|
+impl @btree.BTreeElem for MItem
 
 ///|
 fn mi(start : Int) -> MItem {

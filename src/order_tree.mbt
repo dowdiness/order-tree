@@ -73,7 +73,7 @@ pub fn[T] OrderTree::find(self : OrderTree[T], pos : Int) -> FindResult[T]? {
 /// Replace the element at the given span position.
 /// Returns the old single-unit slice, or None if out of bounds.
 /// Implemented as delete_at + insert_at to ensure neighbor merging.
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::set_at(
+pub fn[T : @btree.BTreeElem] OrderTree::set_at(
   self : OrderTree[T],
   pos : Int,
   elem : T,
@@ -98,7 +98,7 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::set_at(
 
 ///|
 /// Index setter: `tree[pos] = elem`. Discards the old value.
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::op_set(
+pub fn[T : @btree.BTreeElem] OrderTree::op_set(
   self : OrderTree[T],
   pos : Int,
   elem : T,
@@ -110,7 +110,7 @@ pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::op_set(
 /// View operator: `tree[start:end]` returns elements in span range [start, end).
 /// Slices at boundaries. Uses one descent, then walks leaves in order.
 #alias("_[_:_]")
-pub fn[T : @rle.Sliceable] OrderTree::view(
+pub fn[T : @btree.BTreeElem] OrderTree::view(
   self : OrderTree[T],
   start? : Int = 0,
   end? : Int,
@@ -135,7 +135,7 @@ pub fn[T : @rle.Sliceable] OrderTree::view(
 }
 
 ///|
-fn[T : @rle.Mergeable + @rle.Sliceable] delete_range_needs_merge_rebuild(
+fn[T : @btree.BTreeElem] delete_range_needs_merge_rebuild(
   root : OrderNode[T],
   start : Int,
   end_ : Int,
@@ -166,7 +166,7 @@ fn[T : @rle.Mergeable + @rle.Sliceable] delete_range_needs_merge_rebuild(
 /// require merge normalization. Otherwise it falls back to the kept-slice
 /// rebuild path so behavior stays canonical for all valid `Mergeable`
 /// implementations.
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(
+pub fn[T : @btree.BTreeElem] OrderTree::delete_range(
   self : OrderTree[T],
   start : Int,
   end_ : Int,

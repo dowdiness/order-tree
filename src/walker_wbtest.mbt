@@ -58,6 +58,9 @@ impl @rle.Sliceable for Run with slice(self : Run, start~ : Int, end~ : Int) -> 
 }
 
 ///|
+impl @btree.BTreeElem for Run
+
+///|
 test "leaf context neighbor access" {
   let children : Array[OrderNode[WalkerItem]] = [
     Leaf(elem=wi("aa"), span=2),

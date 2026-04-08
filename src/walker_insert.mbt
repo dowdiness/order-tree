@@ -1,5 +1,5 @@
 ///|
-fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] compute_insert_splice(
+fn[T : @btree.BTreeElem] compute_insert_splice(
   ctx : LeafContext[T],
   elem : T,
 ) -> InsertLeafResult[T] {
