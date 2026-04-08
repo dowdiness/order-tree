@@ -1,5 +1,5 @@
 ///|
-fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] compute_delete_splice(
+fn[T : @btree.BTreeElem] compute_delete_splice(
   ctx : LeafContext[T],
 ) -> DeleteLeafResult[T] {
   if ctx.span == 1 {

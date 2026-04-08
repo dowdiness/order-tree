@@ -37,6 +37,9 @@ impl @rle.Sliceable for TI with slice(self, start~ : Int, end~ : Int) -> Result[
 }
 
 ///|
+impl @btree.BTreeElem for TI
+
+///|
 fn mki(v : Int) -> TI {
   { value: v }
 }

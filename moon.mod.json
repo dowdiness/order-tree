@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "source": "src",
   "deps": {
+    "dowdiness/btree": { "path": "../lib/btree" },
     "dowdiness/rle": { "path": "../rle" },
     "moonbitlang/quickcheck": "0.11.2"
   },

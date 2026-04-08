@@ -42,7 +42,7 @@ fn[T] rebuild_boundary_chain(
 }
 
 ///|
-fn[T : @rle.Sliceable] left_boundary_keep(start : LeafCursor[T]) -> T? {
+fn[T : @btree.BTreeElem] left_boundary_keep(start : LeafCursor[T]) -> T? {
   if start.offset == 0 {
     return None
   }
@@ -50,7 +50,7 @@ fn[T : @rle.Sliceable] left_boundary_keep(start : LeafCursor[T]) -> T? {
 }
 
 ///|
-fn[T : @rle.Sliceable] right_boundary_keep(end_ : LeafCursor[T]) -> T? {
+fn[T : @btree.BTreeElem] right_boundary_keep(end_ : LeafCursor[T]) -> T? {
   if end_.offset == end_.span {
     return None
   }
@@ -126,7 +126,7 @@ fn[T] rightmost_leaf_in_subtree(node : OrderNode[T]) -> LeafCursor[T] {
 }
 
 ///|
-fn[T : @rle.Spanning + @rle.Sliceable] left_boundary_subtree(
+fn[T : @btree.BTreeElem] left_boundary_subtree(
   lca : AncestorRange[T],
   start : LeafCursor[T],
 ) -> OrderNode[T]? {
@@ -142,7 +142,7 @@ fn[T : @rle.Spanning + @rle.Sliceable] left_boundary_subtree(
 }
 
 ///|
-fn[T : @rle.Spanning + @rle.Sliceable] right_boundary_subtree(
+fn[T : @btree.BTreeElem] right_boundary_subtree(
   lca : AncestorRange[T],
   end_ : LeafCursor[T],
 ) -> OrderNode[T]? {
@@ -158,7 +158,7 @@ fn[T : @rle.Spanning + @rle.Sliceable] right_boundary_subtree(
 }
 
 ///|
-fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] merged_boundary_subtree(
+fn[T : @btree.BTreeElem] merged_boundary_subtree(
   lca : AncestorRange[T],
   start : LeafCursor[T],
   end_ : LeafCursor[T],
@@ -194,7 +194,7 @@ fn[T] OrderNode::leaf_count(self : OrderNode[T]) -> Int {
 }
 
 ///|
-fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] compute_single_leaf_delete_range(
+fn[T : @btree.BTreeElem] compute_single_leaf_delete_range(
   leaf : LeafCursor[T],
   start_offset : Int,
   end_offset : Int,
@@ -249,7 +249,7 @@ fn[T] leaf_count_of_array(children : Array[OrderNode[T]]) -> Int {
 }
 
 ///|
-fn[T : @rle.Spanning + @rle.Mergeable] merge_leaf_nodes(
+fn[T : @btree.BTreeElem] merge_leaf_nodes(
   left : OrderNode[T],
   right : OrderNode[T],
 ) -> OrderNode[T]? {
@@ -266,7 +266,7 @@ fn[T : @rle.Spanning + @rle.Mergeable] merge_leaf_nodes(
 }
 
 ///|
-fn[T : @rle.Spanning + @rle.Mergeable] absorb_leaf_level_gap_merge(
+fn[T : @btree.BTreeElem] absorb_leaf_level_gap_merge(
   lca : AncestorRange[T],
   start : LeafCursor[T],
   end_ : LeafCursor[T],
@@ -325,7 +325,7 @@ fn[T : @rle.Spanning + @rle.Mergeable] absorb_leaf_level_gap_merge(
 }
 
 ///|
-fn[T : @rle.Spanning + @rle.Mergeable] absorb_subtree_gap_merge(
+fn[T : @btree.BTreeElem] absorb_subtree_gap_merge(
   lca : AncestorRange[T],
   start : LeafCursor[T],
   end_ : LeafCursor[T],
@@ -356,7 +356,7 @@ fn[T : @rle.Spanning + @rle.Mergeable] absorb_subtree_gap_merge(
 }
 
 ///|
-fn[T : @rle.Spanning + @rle.Mergeable] promote_empty_child_gap_merge(
+fn[T : @btree.BTreeElem] promote_empty_child_gap_merge(
   lca : AncestorRange[T],
 ) -> NodeSplice[T]? {
   if lca.prefix.length() == 0 ||
@@ -400,7 +400,7 @@ fn[T : @rle.Spanning + @rle.Mergeable] promote_empty_child_gap_merge(
 }
 
 ///|
-fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] plan_delete_range(
+fn[T : @btree.BTreeElem] plan_delete_range(
   root : OrderNode[T],
   start : Int,
   end_ : Int,

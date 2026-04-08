@@ -1,7 +1,7 @@
 ///|
 /// Insert an element at the given position in the tree.
 /// Position is clamped to [0, span()]. Element must have span > 0.
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::insert_at(
+pub fn[T : @btree.BTreeElem] OrderTree::insert_at(
   self : OrderTree[T],
   pos : Int,
   elem : T,

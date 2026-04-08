@@ -2,6 +2,7 @@
 package "dowdiness/order-tree"
 
 import {
+  "dowdiness/btree",
   "dowdiness/rle",
   "moonbitlang/core/debug",
 }
@@ -27,22 +28,22 @@ pub struct OrderTree[T] {
   min_degree : Int
   mut size : Int
 } derive(Eq, @debug.Debug)
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_at(Self[T], Int) -> T?
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::delete_range(Self[T], Int, Int) -> Unit
+pub fn[T : @btree.BTreeElem] OrderTree::delete_at(Self[T], Int) -> T?
+pub fn[T : @btree.BTreeElem] OrderTree::delete_range(Self[T], Int, Int) -> Unit
 pub fn[T] OrderTree::each(Self[T], (T) -> Unit) -> Unit
 pub fn[T] OrderTree::find(Self[T], Int) -> FindResult[T]?
 pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(Array[T], min_degree? : Int) -> Self[T]
 #alias("_[_]")
 pub fn[T] OrderTree::get_at(Self[T], Int) -> T?
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::insert_at(Self[T], Int, T) -> Unit
+pub fn[T : @btree.BTreeElem] OrderTree::insert_at(Self[T], Int, T) -> Unit
 pub fn[T] OrderTree::iter(Self[T]) -> Iter[T]
 pub fn[T] OrderTree::new(min_degree? : Int) -> Self[T]
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::op_set(Self[T], Int, T) -> Unit
-pub fn[T : @rle.Spanning + @rle.Mergeable + @rle.Sliceable] OrderTree::set_at(Self[T], Int, T) -> T?
+pub fn[T : @btree.BTreeElem] OrderTree::op_set(Self[T], Int, T) -> Unit
+pub fn[T : @btree.BTreeElem] OrderTree::set_at(Self[T], Int, T) -> T?
 pub fn[T] OrderTree::size(Self[T]) -> Int
 pub fn[T] OrderTree::to_array(Self[T]) -> Array[T]
 #alias("_[_:_]")
-pub fn[T : @rle.Sliceable] OrderTree::view(Self[T], start? : Int, end? : Int) -> Array[T]
+pub fn[T : @btree.BTreeElem] OrderTree::view(Self[T], start? : Int, end? : Int) -> Array[T]
 pub impl[T] @rle.HasLength for OrderTree[T]
 pub impl[T] @rle.Spanning for OrderTree[T]
 

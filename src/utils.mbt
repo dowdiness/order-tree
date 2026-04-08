@@ -47,7 +47,7 @@ fn[T] OrderNode::is_full(self : OrderNode[T], min_degree : Int) -> Bool {
 ///|
 /// Unwrap a Sliceable::slice result, aborting on failure.
 /// Slice failure at a navigated position indicates a violated precondition.
-fn[T : @rle.Sliceable] must_slice(elem : T, start~ : Int, end~ : Int) -> T {
+fn[T : @btree.BTreeElem] must_slice(elem : T, start~ : Int, end~ : Int) -> T {
   match @rle.Sliceable::slice(elem, start~, end~) {
     Ok(result) => result
     Err(_) => abort("OrderTree internal error: slice failed")
