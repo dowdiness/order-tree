@@ -1,7 +1,11 @@
 ///|
 /// Sum all elements of an Int array.
 fn Array::sum(self : Array[Int]) -> Int {
-  self.iter().fold(init=0, fn(acc, x) { acc + x })
+  let mut acc = 0
+  for x in self {
+    acc += x
+  }
+  acc
 }
 
 ///|

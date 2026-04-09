@@ -317,11 +317,7 @@ fn[T] leaf_count_of_children(
 
 ///|
 fn[T] leaf_count_of_array(children : Array[BTreeNode[T]]) -> Int {
-  let mut total = 0
-  for child in children {
-    total = total + child.leaf_count()
-  }
-  total
+  leaf_count_of_children(children, 0, children.length())
 }
 
 ///|
