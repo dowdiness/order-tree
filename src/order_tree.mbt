@@ -134,7 +134,7 @@ pub fn[T : @btree.BTreeElem] OrderTree::delete_range(
         self.tree.root = rebuilt.tree.root
         self.tree.size = rebuilt.tree.size()
       }
-      match plan_delete_range(root, start, end_, self.tree.min_degree) {
+      match @btree.plan_delete_range(root, start, end_, self.tree.min_degree) {
         None => rebuild()
         Some(splice) => {
           let new_child_count = splice.original_child_count -
