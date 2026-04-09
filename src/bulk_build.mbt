@@ -1,4 +1,7 @@
 ///|
+using @btree {type BTreeNode}
+
+///|
 /// Build an OrderTree from an array of elements in O(n) time.
 /// Filters zero-span items, pre-merges adjacent mergeable elements,
 /// then builds bottom-up.
