@@ -2,7 +2,7 @@
 /// Build an OrderTree from an array of elements in O(n) time.
 /// Filters zero-span items, pre-merges adjacent mergeable elements,
 /// then builds bottom-up.
-pub fn[T : @btree.BTreeElem] OrderTree::from_array(
+pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
   items : Array[T],
   min_degree? : Int,
 ) -> OrderTree[T] {

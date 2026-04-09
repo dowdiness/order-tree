@@ -18,8 +18,8 @@ fn[T : @btree.BTreeElem] must_slice(elem : T, start~ : Int, end~ : Int) -> T {
   }
 }
 
-// === General tree-walking helpers ===
-// Local methods on ArrayView. Used by navigate, insert, and delete.
+// === Slot-finding helpers ===
+// Used by walker_range_delete.mbt and walker_wbtest.mbt.
 
 ///|
 /// Walk cumulative sums to find which slot contains position `pos`.
