@@ -2,11 +2,14 @@
 /// Build an OrderTree from an array of elements in O(n) time.
 /// Filters zero-span items, pre-merges adjacent mergeable elements,
 /// then builds bottom-up.
-pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
+pub fn[T : @btree.BTreeElem] OrderTree::from_array(
   items : Array[T],
-  min_degree? : Int = DEFAULT_MIN_DEGREE,
+  min_degree? : Int,
 ) -> OrderTree[T] {
-  let t = if min_degree < 2 { 2 } else { min_degree }
+  let t = match min_degree {
+    Some(d) => if d < 2 { 2 } else { d }
+    None => 10
+  }
   if items.is_empty() {
     return OrderTree::new(min_degree=t)
   }
@@ -30,7 +33,7 @@ pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
     return OrderTree::new(min_degree=t)
   }
   // Create one leaf per merged element
-  let mut current_layer : Array[OrderNode[T]] = Array::new(
+  let mut current_layer : Array[BTreeNode[T]] = Array::new(
     capacity=merged.length(),
   )
   for elem in merged {
@@ -43,7 +46,7 @@ pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
   let min_children = t
   while current_layer.length() > 1 {
     let node_count = current_layer.length()
-    let child_groups : Array[Array[OrderNode[T]]] = []
+    let child_groups : Array[Array[BTreeNode[T]]] = []
     let mut cstart = 0
     while cstart < node_count {
       let cend = if cstart + max_children >= node_count {
@@ -51,7 +54,7 @@ pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
       } else {
         cstart + max_children
       }
-      let cgroup : Array[OrderNode[T]] = Array::new(capacity=cend - cstart)
+      let cgroup : Array[BTreeNode[T]] = Array::new(capacity=cend - cstart)
       for i in cstart..<cend {
         cgroup.push(current_layer[i])
       }
@@ -67,7 +70,7 @@ pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
         let total = prev.length() + last.length()
         let new_prev_count = (total + 1) / 2
         let new_last_count = total - new_prev_count
-        let new_last : Array[OrderNode[T]] = Array::new(capacity=new_last_count)
+        let new_last : Array[BTreeNode[T]] = Array::new(capacity=new_last_count)
         for i in new_prev_count..<(new_prev_count + new_last_count) {
           if i < prev.length() {
             new_last.push(prev[i])
@@ -82,7 +85,7 @@ pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
       }
     }
     // Create internal nodes
-    let next_layer : Array[OrderNode[T]] = Array::new(
+    let next_layer : Array[BTreeNode[T]] = Array::new(
       capacity=child_groups.length(),
     )
     for cgroup in child_groups {
@@ -104,5 +107,8 @@ pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
     }
     Internal(..) => ()
   }
-  { root: Some(root_node), min_degree: t, size: leaf_count }
+  let btree : @btree.BTree[T] = @btree.BTree::new(min_degree=t)
+  btree.root = Some(root_node)
+  btree.size = leaf_count
+  { tree: btree }
 }

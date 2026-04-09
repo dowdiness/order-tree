@@ -61,21 +61,58 @@ impl @rle.Sliceable for Run with slice(self : Run, start~ : Int, end~ : Int) -> 
 impl @btree.BTreeElem for Run
 
 ///|
+/// Local copy of find_slot (private in @btree) for testing.
+fn find_slot(counts : Array[Int], pos : Int, _total : Int) -> (Int, Int) {
+  guard counts.length() > 0 else { abort("find_slot: empty counts") }
+  match
+    counts[:counts.length() - 1].find_by_sum(pos, fn(i, remaining) {
+      Some((i, remaining))
+    }) {
+    Some(pair) => pair
+    None => {
+      let last = counts.length() - 1
+      (last, pos - (_total - counts[last]))
+    }
+  }
+}
+
+///|
+/// Local copy of find_slot_inclusive (private in @btree) for testing.
+fn find_slot_inclusive(
+  counts : Array[Int],
+  pos : Int,
+  _total : Int,
+) -> (Int, Int) {
+  guard counts.length() > 0 else { abort("find_slot_inclusive: empty counts") }
+  match
+    counts[:counts.length() - 1].find_by_sum_inclusive(
+      pos,
+      fn(i, remaining) { Some((i, remaining)) },
+    ) {
+    Some(pair) => pair
+    None => {
+      let last = counts.length() - 1
+      (last, pos - (_total - counts[last]))
+    }
+  }
+}
+
+///|
 test "leaf context neighbor access" {
-  let children : Array[OrderNode[WalkerItem]] = [
+  let children : Array[BTreeNode[WalkerItem]] = [
     Leaf(elem=wi("aa"), span=2),
     Leaf(elem=wi("bbb"), span=3),
     Leaf(elem=wi("c"), span=1),
   ]
   let counts = [2, 3, 1]
-  let cursor : Cursor[WalkerItem] = {
+  let cursor : @btree.Cursor[WalkerItem] = {
     path: [{ children, counts, child_idx: 1 }],
     leaf_elem: wi("bbb"),
     leaf_span: 3,
     offset: 1,
     child_idx: 1,
   }
-  let ctx = LeafContext::from_cursor(cursor)
+  let ctx = @btree.LeafContext::from_cursor(cursor)
   inspect(ctx.left_neighbor().map(fn(x) { x.value }), content="Some(\"aa\")")
   inspect(ctx.right_neighbor().map(fn(x) { x.value }), content="Some(\"c\")")
 }
@@ -91,14 +128,14 @@ test "find slot helpers preserve boundary semantics" {
 
 ///|
 test "cursor as leaf preserves leaf payload" {
-  let cursor : Cursor[Run] = {
+  let cursor : @btree.Cursor[Run] = {
     path: [],
     leaf_elem: run("x", 3),
     leaf_span: 3,
     offset: 1,
     child_idx: 0,
   }
-  let leaf = cursor_as_leaf(cursor).unwrap()
+  let leaf = @btree.LeafCursor::from_cursor(cursor)
   inspect(
     leaf.elem,
     content=(
@@ -111,12 +148,12 @@ test "cursor as leaf preserves leaf payload" {
 
 ///|
 test "descend keeps insert boundary on current leaf" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
-  match descend(root, 2, 2, prepare_noop, find_slot_inclusive, true) {
+  match @btree.descend(root, 2, 2, prepare_noop, find_slot_inclusive, true) {
     None => inspect("missing cursor", content="\"unexpected\"")
     Some(cursor) => {
       inspect(cursor.child_idx, content="0")
@@ -133,12 +170,12 @@ test "descend keeps insert boundary on current leaf" {
 
 ///|
 test "descend leaf at uses strict boundary semantics" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
-  let leaf = descend_leaf_at(root, 2, 2).unwrap()
+  let leaf = @btree.descend_leaf_at(root, 2, 2).unwrap()
   inspect(
     leaf.elem,
     content=(
@@ -150,12 +187,12 @@ test "descend leaf at uses strict boundary semantics" {
 
 ///|
 test "descend leaf at end boundary stays on left leaf" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 3), span=3)],
     counts=[2, 3],
     total=5,
   )
-  let boundary = descend_leaf_at_end_boundary(root, 2, 2).unwrap()
+  let boundary = @btree.descend_leaf_at_end_boundary(root, 2, 2).unwrap()
   inspect(
     boundary.elem,
     content=(
@@ -163,7 +200,7 @@ test "descend leaf at end boundary stays on left leaf" {
     ),
   )
   inspect(boundary.offset, content="2")
-  let end_of_tree = descend_leaf_at_end_boundary(root, 5, 2).unwrap()
+  let end_of_tree = @btree.descend_leaf_at_end_boundary(root, 5, 2).unwrap()
   inspect(
     end_of_tree.elem,
     content=(
@@ -175,19 +212,19 @@ test "descend leaf at end boundary stays on left leaf" {
 
 ///|
 test "descend leaf at end boundary returns none at tree start" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 3), span=3)],
     counts=[2, 3],
     total=5,
   )
-  inspect(descend_leaf_at_end_boundary(root, 0, 2) is None, content="true")
+  inspect(@btree.descend_leaf_at_end_boundary(root, 0, 2) is None, content="true")
 }
 
 ///|
 test "order node height counts edges to leaf" {
-  let leaf : OrderNode[Run] = Leaf(elem=run("a", 1), span=1)
-  let child : OrderNode[Run] = Internal(children=[leaf], counts=[1], total=1)
-  let root : OrderNode[Run] = Internal(children=[child], counts=[1], total=1)
+  let leaf : BTreeNode[Run] = Leaf(elem=run("a", 1), span=1)
+  let child : BTreeNode[Run] = Internal(children=[leaf], counts=[1], total=1)
+  let root : BTreeNode[Run] = Internal(children=[child], counts=[1], total=1)
   inspect(leaf.height(), content="0")
   inspect(child.height(), content="1")
   inspect(root.height(), content="2")
@@ -195,26 +232,26 @@ test "order node height counts edges to leaf" {
 
 ///|
 test "shared prefix length handles same leaf and divergence" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 1), span=1), Leaf(elem=run("b", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
-  let left = descend_leaf_at(root, 0, 2).unwrap()
-  let right = descend_leaf_at(root, 1, 2).unwrap()
+  let left = @btree.descend_leaf_at(root, 0, 2).unwrap()
+  let right = @btree.descend_leaf_at(root, 1, 2).unwrap()
   inspect(shared_prefix_length(left.path, left.path), content="1")
   inspect(shared_prefix_length(left.path, right.path), content="0")
 }
 
 ///|
 test "lowest common ancestor range handles same leaf" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 3), span=3), Leaf(elem=run("b", 2), span=2)],
     counts=[3, 2],
     total=5,
   )
-  let start = descend_leaf_at(root, 1, 2).unwrap()
-  let end_ = descend_leaf_at_end_boundary(root, 2, 2).unwrap()
+  let start = @btree.descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = @btree.descend_leaf_at_end_boundary(root, 2, 2).unwrap()
   let range = lowest_common_ancestor_range(start, end_)
   inspect(range.prefix.length(), content="0")
   inspect(range.start_idx, content="0")
@@ -224,7 +261,7 @@ test "lowest common ancestor range handles same leaf" {
 
 ///|
 test "lowest common ancestor range handles same parent different children" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[
       Leaf(elem=run("a", 2), span=2),
       Leaf(elem=run("b", 2), span=2),
@@ -233,8 +270,8 @@ test "lowest common ancestor range handles same parent different children" {
     counts=[2, 2, 2],
     total=6,
   )
-  let start = descend_leaf_at(root, 1, 2).unwrap()
-  let end_ = descend_leaf_at_end_boundary(root, 5, 2).unwrap()
+  let start = @btree.descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = @btree.descend_leaf_at_end_boundary(root, 5, 2).unwrap()
   let range = lowest_common_ancestor_range(start, end_)
   inspect(range.prefix.length(), content="0")
   inspect(range.start_idx, content="0")
@@ -244,23 +281,23 @@ test "lowest common ancestor range handles same parent different children" {
 
 ///|
 test "lowest common ancestor range handles higher level divergence" {
-  let left_child : OrderNode[Run] = Internal(
+  let left_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 1), span=1), Leaf(elem=run("b", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
-  let right_child : OrderNode[Run] = Internal(
+  let right_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("c", 1), span=1), Leaf(elem=run("d", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[left_child, right_child],
     counts=[2, 2],
     total=4,
   )
-  let start = descend_leaf_at(root, 1, 2).unwrap()
-  let end_ = descend_leaf_at_end_boundary(root, 3, 2).unwrap()
+  let start = @btree.descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = @btree.descend_leaf_at_end_boundary(root, 3, 2).unwrap()
   let range = lowest_common_ancestor_range(start, end_)
   inspect(range.prefix.length(), content="0")
   inspect(range.start_idx, content="0")
@@ -270,49 +307,49 @@ test "lowest common ancestor range handles higher level divergence" {
 
 ///|
 test "left boundary subtree returns none when start is on leaf boundary" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
-  let start = descend_leaf_at(root, 2, 2).unwrap()
-  let end_ = descend_leaf_at_end_boundary(root, 4, 2).unwrap()
+  let start = @btree.descend_leaf_at(root, 2, 2).unwrap()
+  let end_ = @btree.descend_leaf_at_end_boundary(root, 4, 2).unwrap()
   let lca = lowest_common_ancestor_range(start, end_)
   inspect(left_boundary_subtree(lca, start) is None, content="true")
 }
 
 ///|
 test "right boundary subtree returns none when end is on leaf boundary" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
-  let start = descend_leaf_at(root, 1, 2).unwrap()
-  let end_ = descend_leaf_at_end_boundary(root, 2, 2).unwrap()
+  let start = @btree.descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = @btree.descend_leaf_at_end_boundary(root, 2, 2).unwrap()
   let lca = lowest_common_ancestor_range(start, end_)
   inspect(right_boundary_subtree(lca, end_) is None, content="true")
 }
 
 ///|
 test "left boundary subtree rebuilds to lca child height" {
-  let left_child : OrderNode[Run] = Internal(
+  let left_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 1), span=1)],
     counts=[2, 1],
     total=3,
   )
-  let right_child : OrderNode[Run] = Internal(
+  let right_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("c", 2), span=2)],
     counts=[2],
     total=2,
   )
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[left_child, right_child],
     counts=[3, 2],
     total=5,
   )
-  let start = descend_leaf_at(root, 1, 2).unwrap()
-  let end_ = descend_leaf_at_end_boundary(root, 4, 2).unwrap()
+  let start = @btree.descend_leaf_at(root, 1, 2).unwrap()
+  let end_ = @btree.descend_leaf_at_end_boundary(root, 4, 2).unwrap()
   let lca = lowest_common_ancestor_range(start, end_)
   let rebuilt = left_boundary_subtree(lca, start).unwrap()
   inspect(rebuilt.height(), content="1")
@@ -321,23 +358,23 @@ test "left boundary subtree rebuilds to lca child height" {
 
 ///|
 test "right boundary subtree rebuilds to lca child height" {
-  let left_child : OrderNode[Run] = Internal(
+  let left_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 2), span=2)],
     counts=[2],
     total=2,
   )
-  let right_child : OrderNode[Run] = Internal(
+  let right_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("b", 1), span=1), Leaf(elem=run("c", 2), span=2)],
     counts=[1, 2],
     total=3,
   )
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[left_child, right_child],
     counts=[2, 3],
     total=5,
   )
-  let start = descend_leaf_at(root, 0, 2).unwrap()
-  let end_ = descend_leaf_at_end_boundary(root, 4, 2).unwrap()
+  let start = @btree.descend_leaf_at(root, 0, 2).unwrap()
+  let end_ = @btree.descend_leaf_at_end_boundary(root, 4, 2).unwrap()
   let lca = lowest_common_ancestor_range(start, end_)
   let rebuilt = right_boundary_subtree(lca, end_).unwrap()
   inspect(rebuilt.height(), content="1")
@@ -346,7 +383,7 @@ test "right boundary subtree rebuilds to lca child height" {
 
 ///|
 test "plan delete range handles same leaf splice" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 5), span=5), Leaf(elem=run("b", 2), span=2)],
     counts=[5, 2],
     total=7,
@@ -362,7 +399,7 @@ test "plan delete range handles same leaf splice" {
 
 ///|
 test "plan delete range handles multi child lca splice" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[
       Leaf(elem=run("a", 2), span=2),
       Leaf(elem=run("b", 2), span=2),
@@ -385,7 +422,7 @@ test "plan delete range handles multi child lca splice" {
 
 ///|
 test "plan delete range merges partial kept boundaries in same parent" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[
       Leaf(elem=run("a", 3), span=3),
       Leaf(elem=run("b", 2), span=2),
@@ -403,17 +440,17 @@ test "plan delete range merges partial kept boundaries in same parent" {
 
 ///|
 test "plan delete range merges partial kept boundaries across higher lca" {
-  let left_child : OrderNode[Run] = Internal(
+  let left_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 3), span=3), Leaf(elem=run("b", 2), span=2)],
     counts=[3, 2],
     total=5,
   )
-  let right_child : OrderNode[Run] = Internal(
+  let right_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("c", 2), span=2), Leaf(elem=run("a", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[left_child, right_child],
     counts=[5, 4],
     total=9,
@@ -430,7 +467,7 @@ test "plan delete range merges partial kept boundaries across higher lca" {
 
 ///|
 test "plan delete range keeps split partial boundaries when not mergeable" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[
       Leaf(elem=run("a", 3), span=3),
       Leaf(elem=run("b", 2), span=2),
@@ -447,7 +484,7 @@ test "plan delete range keeps split partial boundaries when not mergeable" {
 
 ///|
 test "plan delete range absorbs exact leaf-level gap merge" {
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[
       Leaf(elem=run("a", 3), span=3),
       Leaf(elem=run("b", 2), span=2),
@@ -466,22 +503,22 @@ test "plan delete range absorbs exact leaf-level gap merge" {
 
 ///|
 test "plan delete range absorbs exact higher-level gap merge" {
-  let left_child : OrderNode[Run] = Internal(
+  let left_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("x", 1), span=1), Leaf(elem=run("a", 2), span=2)],
     counts=[1, 2],
     total=3,
   )
-  let middle_child : OrderNode[Run] = Internal(
+  let middle_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("b", 2), span=2)],
     counts=[2],
     total=2,
   )
-  let right_child : OrderNode[Run] = Internal(
+  let right_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 3), span=3), Leaf(elem=run("y", 1), span=1)],
     counts=[3, 1],
     total=4,
   )
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[left_child, middle_child, right_child],
     counts=[3, 2, 4],
     total=9,
@@ -497,13 +534,13 @@ test "plan delete range absorbs exact higher-level gap merge" {
 
 ///|
 test "propagate node splice updates root in place" {
-  let children : Array[OrderNode[Run]] = [
+  let children : Array[BTreeNode[Run]] = [
     Leaf(elem=run("a", 2), span=2),
     Leaf(elem=run("b", 2), span=2),
     Leaf(elem=run("c", 2), span=2),
   ]
   let counts = [2, 2, 2]
-  let result = propagate_node_splice(
+  let result = @btree.propagate_node_splice(
     {
       prefix: [],
       children,
@@ -534,27 +571,27 @@ test "propagate node splice updates root in place" {
 
 ///|
 test "propagate node splice updates ancestor counts" {
-  let left_child : OrderNode[Run] = Internal(
+  let left_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 2), span=2), Leaf(elem=run("b", 2), span=2)],
     counts=[2, 2],
     total=4,
   )
-  let right_child : OrderNode[Run] = Internal(
+  let right_child : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("c", 3), span=3)],
     counts=[3],
     total=3,
   )
-  let root_children : Array[OrderNode[Run]] = [left_child, right_child]
+  let root_children : Array[BTreeNode[Run]] = [left_child, right_child]
   let root_counts = [4, 3]
-  let prefix : Array[PathFrame[Run]] = [
+  let prefix : Array[@btree.PathFrame[Run]] = [
     { children: root_children, counts: root_counts, child_idx: 0 },
   ]
-  let target_children : Array[OrderNode[Run]] = [
+  let target_children : Array[BTreeNode[Run]] = [
     Leaf(elem=run("a", 2), span=2),
     Leaf(elem=run("b", 2), span=2),
   ]
   let target_counts = [2, 2]
-  let result = propagate_node_splice(
+  let result = @btree.propagate_node_splice(
     {
       prefix,
       children: target_children,
@@ -581,22 +618,22 @@ test "propagate node splice updates ancestor counts" {
 
 ///|
 test "descend re-finds slot after ensure-min merge" {
-  let left : OrderNode[Run] = Internal(
+  let left : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("a", 1), span=1), Leaf(elem=run("b", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
-  let right : OrderNode[Run] = Internal(
+  let right : BTreeNode[Run] = Internal(
     children=[Leaf(elem=run("c", 1), span=1), Leaf(elem=run("d", 1), span=1)],
     counts=[1, 1],
     total=2,
   )
-  let root : OrderNode[Run] = Internal(
+  let root : BTreeNode[Run] = Internal(
     children=[left, right],
     counts=[2, 2],
     total=4,
   )
-  match descend(root, 2, 2, prepare_ensure_min, find_slot, false) {
+  match @btree.descend(root, 2, 2, @btree.prepare_ensure_min, find_slot, false) {
     None => inspect("missing cursor", content="\"unexpected\"")
     Some(cursor) => {
       inspect(cursor.path.length(), content="2")
@@ -615,19 +652,18 @@ test "descend re-finds slot after ensure-min merge" {
 
 ///|
 test "propagate reports root overflow after splice expands full root" {
-  let children : Array[OrderNode[Run]] = [
+  let children : Array[BTreeNode[Run]] = [
     Leaf(elem=run("a", 1), span=1),
     Leaf(elem=run("b", 1), span=1),
     Leaf(elem=run("c", 1), span=1),
     Leaf(elem=run("d", 1), span=1),
   ]
   let counts = [1, 1, 1, 1]
-  let path : Array[PathFrame[Run]] = [{ children, counts, child_idx: 3 }]
-  let result = propagate(
+  let path : Array[@btree.PathFrame[Run]] = [{ children, counts, child_idx: 3 }]
+  let result = @btree.propagate(
     path,
     { start_idx: 4, end_idx: 4, new_leaves: [(run("e", 1), 1)] },
     2,
-    1,
   )
   inspect(result.leaf_delta, content="1")
   inspect(result.node.total(), content="2")
@@ -656,7 +692,7 @@ test "delete_at collapses root after propagated child removal" {
       #|Some({ ch: "5", span: 1 })
     ),
   )
-  match tree.root {
+  match tree.tree.root {
     Some(Internal(children~, ..)) => inspect(children.length(), content="2")
     _ => inspect("bad root", content="\"unexpected\"")
   }
