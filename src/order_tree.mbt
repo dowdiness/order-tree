@@ -89,89 +89,11 @@ pub fn[T : @btree.BTreeElem] OrderTree::view(
 }
 
 ///|
-fn[T : @btree.BTreeElem] delete_range_needs_merge_rebuild(
-  root : @btree.BTreeNode[T],
-  start : Int,
-  end_ : Int,
-) -> Bool {
-  let mut left_kept : T? = None
-  let mut right_kept : T? = None
-  root.each_slice_in_range(0, start, fn(elem) { left_kept = Some(elem) })
-  root.each_slice_in_range(end_, root.total(), fn(elem) {
-    if right_kept is None {
-      right_kept = Some(elem)
-    }
-  })
-  match (left_kept, right_kept) {
-    (Some(left), Some(right)) => @rle.Mergeable::can_merge(left, right)
-    _ => false
-  }
-}
-
-///|
 /// Delete all elements in the span range [start, end_).
 pub fn[T : @btree.BTreeElem] OrderTree::delete_range(
   self : OrderTree[T],
   start : Int,
   end_ : Int,
 ) -> Unit {
-  match self.tree.root {
-    None => ()
-    Some(root) => {
-      let total = root.total()
-      if start < 0 || start >= end_ || start >= total {
-        return
-      }
-      let rebuild = fn() {
-        let end = if end_ > total { total } else { end_ }
-        let kept : Array[T] = []
-        root.each_slice_in_range(0, start, fn(elem) { kept.push(elem) })
-        root.each_slice_in_range(end, total, fn(elem) { kept.push(elem) })
-        let rebuilt = OrderTree::from_array(
-          kept,
-          min_degree=self.tree.min_degree,
-        )
-        self.tree.root = rebuilt.tree.root
-        self.tree.size = rebuilt.tree.size()
-      }
-      match @btree.plan_delete_range(root, start, end_, self.tree.min_degree) {
-        None => rebuild()
-        Some(splice) => {
-          let new_child_count = splice.original_child_count -
-            (splice.end_idx - splice.start_idx) +
-            splice.new_children.length()
-          if (
-              splice.prefix.length() > 0 &&
-              new_child_count < self.tree.min_degree
-            ) ||
-            delete_range_needs_merge_rebuild(root, start, end_) {
-            rebuild()
-          } else {
-            let propagated = @btree.propagate_node_splice(
-              splice,
-              self.tree.min_degree,
-            )
-            match propagated.overflow {
-              None =>
-                self.tree.root = @btree.normalize_root_after_delete(
-                  propagated.node,
-                )
-              Some(sibling) => {
-                let left_total = propagated.node.total()
-                let right_total = sibling.total()
-                self.tree.root = Some(
-                  @btree.BTreeNode::Internal(
-                    children=[propagated.node, sibling],
-                    counts=[left_total, right_total],
-                    total=left_total + right_total,
-                  ),
-                )
-              }
-            }
-            self.tree.size = self.tree.size + propagated.leaf_delta
-          }
-        }
-      }
-    }
-  }
+  self.tree.delete_range(start, end_)
 }
