@@ -85,10 +85,9 @@ fn find_slot_inclusive(
 ) -> (Int, Int) {
   guard counts.length() > 0 else { abort("find_slot_inclusive: empty counts") }
   match
-    counts[:counts.length() - 1].find_by_sum_inclusive(
-      pos,
-      fn(i, remaining) { Some((i, remaining)) },
-    ) {
+    counts[:counts.length() - 1].find_by_sum_inclusive(pos, fn(i, remaining) {
+      Some((i, remaining))
+    }) {
     Some(pair) => pair
     None => {
       let last = counts.length() - 1
@@ -217,7 +216,10 @@ test "descend leaf at end boundary returns none at tree start" {
     counts=[2, 3],
     total=5,
   )
-  inspect(@btree.descend_leaf_at_end_boundary(root, 0, 2) is None, content="true")
+  inspect(
+    @btree.descend_leaf_at_end_boundary(root, 0, 2) is None,
+    content="true",
+  )
 }
 
 ///|
@@ -633,7 +635,8 @@ test "descend re-finds slot after ensure-min merge" {
     counts=[2, 2],
     total=4,
   )
-  match @btree.descend(root, 2, 2, @btree.prepare_ensure_min, find_slot, false) {
+  match
+    @btree.descend(root, 2, 2, @btree.prepare_ensure_min, find_slot, false) {
     None => inspect("missing cursor", content="\"unexpected\"")
     Some(cursor) => {
       inspect(cursor.path.length(), content="2")

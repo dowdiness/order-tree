@@ -19,11 +19,7 @@ fn[T : @btree.BTreeElem] compute_delete_splice(
       _ => ()
     }
     return (
-      {
-        start_idx: ctx.child_idx,
-        end_idx: ctx.child_idx + 1,
-        new_leaves: [],
-      },
+      { start_idx: ctx.child_idx, end_idx: ctx.child_idx + 1, new_leaves: [] },
       ctx.elem,
     )
   }

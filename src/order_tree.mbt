@@ -40,7 +40,10 @@ pub fn[T] OrderTree::get_at(self : OrderTree[T], pos : Int) -> T? {
 }
 
 ///|
-pub fn[T] OrderTree::find(self : OrderTree[T], pos : Int) -> @btree.FindResult[T]? {
+pub fn[T] OrderTree::find(
+  self : OrderTree[T],
+  pos : Int,
+) -> @btree.FindResult[T]? {
   self.tree.find(pos)
 }
 
@@ -141,7 +144,10 @@ pub fn[T : @btree.BTreeElem] OrderTree::delete_range(
           let new_child_count = splice.original_child_count -
             (splice.end_idx - splice.start_idx) +
             splice.new_children.length()
-          if (splice.prefix.length() > 0 && new_child_count < self.tree.min_degree) ||
+          if (
+              splice.prefix.length() > 0 &&
+              new_child_count < self.tree.min_degree
+            ) ||
             delete_range_needs_merge_rebuild(root, start, end_) {
             rebuild()
           } else {

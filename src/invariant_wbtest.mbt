@@ -204,9 +204,7 @@ fn[T : @rle.Mergeable] check_no_adjacent_mergeable(
 ///|
 /// Check all B-tree invariants for the given tree.
 /// Returns None if all invariants hold, Some(error_message) if any is violated.
-fn[T : @btree.BTreeElem] check_invariants(
-  tree : OrderTree[T],
-) -> String? {
+fn[T : @btree.BTreeElem] check_invariants(tree : OrderTree[T]) -> String? {
   match tree.tree.root {
     None => {
       if tree.tree.size != 0 {
