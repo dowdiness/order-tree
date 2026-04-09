@@ -1,8 +1,8 @@
 ///|
 fn[T : @btree.BTreeElem] compute_insert_splice(
-  ctx : LeafContext[T],
+  ctx : @btree.LeafContext[T],
   elem : T,
-) -> InsertLeafResult[T] {
+) -> @btree.Splice[T] {
   let elem_span = @rle.Spanning::span(elem)
   if ctx.offset == 0 {
     match ctx.left_neighbor() {
@@ -11,28 +11,19 @@ fn[T : @btree.BTreeElem] compute_insert_splice(
           let merged_left = @rle.Mergeable::merge(left_elem, elem)
           let merged_left_span = @rle.Spanning::span(merged_left)
           let new_leaves : Array[(T, Int)] = [(merged_left, merged_left_span)]
-          match @rle.Mergeable::can_merge(merged_left, ctx.elem) {
-            true => {
-              let merged = @rle.Mergeable::merge(merged_left, ctx.elem)
-              return {
-                splice: {
-                  start_idx: ctx.child_idx - 1,
-                  end_idx: ctx.child_idx + 1,
-                  new_leaves: [(merged, @rle.Spanning::span(merged))],
-                },
-                leaf_delta: -1,
-              }
+          if @rle.Mergeable::can_merge(merged_left, ctx.elem) {
+            let merged = @rle.Mergeable::merge(merged_left, ctx.elem)
+            return {
+              start_idx: ctx.child_idx - 1,
+              end_idx: ctx.child_idx + 1,
+              new_leaves: [(merged, @rle.Spanning::span(merged))],
             }
-            false => {
-              new_leaves.push((ctx.elem, ctx.span))
-              return {
-                splice: {
-                  start_idx: ctx.child_idx - 1,
-                  end_idx: ctx.child_idx + 1,
-                  new_leaves,
-                },
-                leaf_delta: 0,
-              }
+          } else {
+            new_leaves.push((ctx.elem, ctx.span))
+            return {
+              start_idx: ctx.child_idx - 1,
+              end_idx: ctx.child_idx + 1,
+              new_leaves,
             }
           }
         }
@@ -41,21 +32,15 @@ fn[T : @btree.BTreeElem] compute_insert_splice(
     if @rle.Mergeable::can_merge(elem, ctx.elem) {
       let merged = @rle.Mergeable::merge(elem, ctx.elem)
       return {
-        splice: {
-          start_idx: ctx.child_idx,
-          end_idx: ctx.child_idx + 1,
-          new_leaves: [(merged, @rle.Spanning::span(merged))],
-        },
-        leaf_delta: 0,
+        start_idx: ctx.child_idx,
+        end_idx: ctx.child_idx + 1,
+        new_leaves: [(merged, @rle.Spanning::span(merged))],
       }
     }
     return {
-      splice: {
-        start_idx: ctx.child_idx,
-        end_idx: ctx.child_idx,
-        new_leaves: [(elem, elem_span)],
-      },
-      leaf_delta: 1,
+      start_idx: ctx.child_idx,
+      end_idx: ctx.child_idx,
+      new_leaves: [(elem, elem_span)],
     }
   }
   if ctx.offset == ctx.span {
@@ -66,23 +51,17 @@ fn[T : @btree.BTreeElem] compute_insert_splice(
           if @rle.Mergeable::can_merge(merged_current, right_elem) {
             let merged = @rle.Mergeable::merge(merged_current, right_elem)
             return {
-              splice: {
-                start_idx: ctx.child_idx,
-                end_idx: ctx.child_idx + 2,
-                new_leaves: [(merged, @rle.Spanning::span(merged))],
-              },
-              leaf_delta: -1,
+              start_idx: ctx.child_idx,
+              end_idx: ctx.child_idx + 2,
+              new_leaves: [(merged, @rle.Spanning::span(merged))],
             }
           }
         None => ()
       }
       return {
-        splice: {
-          start_idx: ctx.child_idx,
-          end_idx: ctx.child_idx + 1,
-          new_leaves: [(merged_current, @rle.Spanning::span(merged_current))],
-        },
-        leaf_delta: 0,
+        start_idx: ctx.child_idx,
+        end_idx: ctx.child_idx + 1,
+        new_leaves: [(merged_current, @rle.Spanning::span(merged_current))],
       }
     }
     match ctx.right_neighbor() {
@@ -90,23 +69,17 @@ fn[T : @btree.BTreeElem] compute_insert_splice(
         if @rle.Mergeable::can_merge(elem, right_elem) {
           let merged = @rle.Mergeable::merge(elem, right_elem)
           return {
-            splice: {
-              start_idx: ctx.child_idx + 1,
-              end_idx: ctx.child_idx + 2,
-              new_leaves: [(merged, @rle.Spanning::span(merged))],
-            },
-            leaf_delta: 0,
+            start_idx: ctx.child_idx + 1,
+            end_idx: ctx.child_idx + 2,
+            new_leaves: [(merged, @rle.Spanning::span(merged))],
           }
         }
       None => ()
     }
     return {
-      splice: {
-        start_idx: ctx.child_idx + 1,
-        end_idx: ctx.child_idx + 1,
-        new_leaves: [(elem, elem_span)],
-      },
-      leaf_delta: 1,
+      start_idx: ctx.child_idx + 1,
+      end_idx: ctx.child_idx + 1,
+      new_leaves: [(elem, elem_span)],
     }
   }
 
@@ -132,8 +105,5 @@ fn[T : @btree.BTreeElem] compute_insert_splice(
     new_leaves.push((current, current_span))
     new_leaves.push((right_part, right_span))
   }
-  {
-    splice: { start_idx: ctx.child_idx, end_idx: ctx.child_idx + 1, new_leaves },
-    leaf_delta: new_leaves.length() - 1,
-  }
+  { start_idx: ctx.child_idx, end_idx: ctx.child_idx + 1, new_leaves }
 }

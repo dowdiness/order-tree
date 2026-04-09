@@ -1,33 +1,27 @@
 ///|
 fn[T : @btree.BTreeElem] compute_delete_splice(
-  ctx : LeafContext[T],
-) -> DeleteLeafResult[T] {
+  ctx : @btree.LeafContext[T],
+) -> (@btree.Splice[T], T) {
   if ctx.span == 1 {
     match (ctx.left_neighbor(), ctx.right_neighbor()) {
       (Some(left_elem), Some(right_elem)) =>
         if @rle.Mergeable::can_merge(left_elem, right_elem) {
           let merged = @rle.Mergeable::merge(left_elem, right_elem)
-          return {
-            splice: {
+          return (
+            {
               start_idx: ctx.child_idx - 1,
               end_idx: ctx.child_idx + 2,
               new_leaves: [(merged, @rle.Spanning::span(merged))],
             },
-            deleted: ctx.elem,
-            leaf_delta: -2,
-          }
+            ctx.elem,
+          )
         }
       _ => ()
     }
-    return {
-      splice: {
-        start_idx: ctx.child_idx,
-        end_idx: ctx.child_idx + 1,
-        new_leaves: [],
-      },
-      deleted: ctx.elem,
-      leaf_delta: -1,
-    }
+    return (
+      { start_idx: ctx.child_idx, end_idx: ctx.child_idx + 1, new_leaves: [] },
+      ctx.elem,
+    )
   }
   if ctx.offset == 0 {
     let deleted = must_slice(ctx.elem, start=0, end=1)
@@ -36,27 +30,25 @@ fn[T : @btree.BTreeElem] compute_delete_splice(
       Some(left_elem) =>
         if @rle.Mergeable::can_merge(left_elem, rest) {
           let merged = @rle.Mergeable::merge(left_elem, rest)
-          return {
-            splice: {
+          return (
+            {
               start_idx: ctx.child_idx - 1,
               end_idx: ctx.child_idx + 1,
               new_leaves: [(merged, @rle.Spanning::span(merged))],
             },
             deleted,
-            leaf_delta: -1,
-          }
+          )
         }
       None => ()
     }
-    return {
-      splice: {
+    return (
+      {
         start_idx: ctx.child_idx,
         end_idx: ctx.child_idx + 1,
         new_leaves: [(rest, @rle.Spanning::span(rest))],
       },
       deleted,
-      leaf_delta: 0,
-    }
+    )
   }
   if ctx.offset == ctx.span - 1 {
     let deleted = must_slice(ctx.elem, start=ctx.span - 1, end=ctx.span)
@@ -65,27 +57,25 @@ fn[T : @btree.BTreeElem] compute_delete_splice(
       Some(right_elem) =>
         if @rle.Mergeable::can_merge(rest, right_elem) {
           let merged = @rle.Mergeable::merge(rest, right_elem)
-          return {
-            splice: {
+          return (
+            {
               start_idx: ctx.child_idx,
               end_idx: ctx.child_idx + 2,
               new_leaves: [(merged, @rle.Spanning::span(merged))],
             },
             deleted,
-            leaf_delta: -1,
-          }
+          )
         }
       None => ()
     }
-    return {
-      splice: {
+    return (
+      {
         start_idx: ctx.child_idx,
         end_idx: ctx.child_idx + 1,
         new_leaves: [(rest, @rle.Spanning::span(rest))],
       },
       deleted,
-      leaf_delta: 0,
-    }
+    )
   }
 
   let deleted = must_slice(ctx.elem, start=ctx.offset, end=ctx.offset + 1)
@@ -93,18 +83,17 @@ fn[T : @btree.BTreeElem] compute_delete_splice(
   let right_part = must_slice(ctx.elem, start=ctx.offset + 1, end=ctx.span)
   if @rle.Mergeable::can_merge(left_part, right_part) {
     let merged = @rle.Mergeable::merge(left_part, right_part)
-    return {
-      splice: {
+    return (
+      {
         start_idx: ctx.child_idx,
         end_idx: ctx.child_idx + 1,
         new_leaves: [(merged, @rle.Spanning::span(merged))],
       },
       deleted,
-      leaf_delta: 0,
-    }
+    )
   }
-  {
-    splice: {
+  (
+    {
       start_idx: ctx.child_idx,
       end_idx: ctx.child_idx + 1,
       new_leaves: [
@@ -113,6 +102,5 @@ fn[T : @btree.BTreeElem] compute_delete_splice(
       ],
     },
     deleted,
-    leaf_delta: 1,
-  }
+  )
 }

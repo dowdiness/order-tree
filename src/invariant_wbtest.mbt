@@ -47,7 +47,7 @@ fn mki(v : Int) -> TI {
 ///|
 /// Returns the leaf depth from this node (all leaves must be at the same depth).
 /// Returns None if inconsistent depths are found.
-fn[T] leaf_depth(node : OrderNode[T], depth : Int) -> Int? {
+fn[T] leaf_depth(node : BTreeNode[T], depth : Int) -> Int? {
   match node {
     Leaf(..) => Some(depth)
     Internal(children~, ..) => {
@@ -72,7 +72,7 @@ fn[T] leaf_depth(node : OrderNode[T], depth : Int) -> Int? {
 /// Leaves are exempt from occupancy constraints (they hold exactly one element).
 /// Non-root internal: [min_degree, 2*min_degree] children.
 fn[T] check_occupancy(
-  node : OrderNode[T],
+  node : BTreeNode[T],
   min_degree : Int,
   is_root : Bool,
 ) -> String? {
@@ -107,7 +107,7 @@ fn[T] check_occupancy(
 ///|
 /// Check that counts arrays match node_total of each child, and totals are sums of counts.
 /// Also checks leaf span consistency.
-fn[T : @rle.Spanning] check_totals(node : OrderNode[T]) -> String? {
+fn[T : @btree.BTreeElem] check_totals(node : BTreeNode[T]) -> String? {
   match node {
     Leaf(elem~, span~) => {
       let actual_span = @rle.Spanning::span(elem)
@@ -156,7 +156,7 @@ fn[T : @rle.Spanning] check_totals(node : OrderNode[T]) -> String? {
 
 ///|
 /// Count the total number of leaf nodes.
-fn[T] count_leaf_items(node : OrderNode[T]) -> Int {
+fn[T] count_leaf_items(node : BTreeNode[T]) -> Int {
   match node {
     Leaf(..) => 1
     Internal(children~, ..) => {
@@ -172,7 +172,7 @@ fn[T] count_leaf_items(node : OrderNode[T]) -> Int {
 ///|
 /// Check that no two adjacent leaf siblings under the same parent are mergeable.
 fn[T : @rle.Mergeable] check_no_adjacent_mergeable(
-  node : OrderNode[T],
+  node : BTreeNode[T],
 ) -> String? {
   match node {
     Leaf(..) => None
@@ -204,12 +204,10 @@ fn[T : @rle.Mergeable] check_no_adjacent_mergeable(
 ///|
 /// Check all B-tree invariants for the given tree.
 /// Returns None if all invariants hold, Some(error_message) if any is violated.
-fn[T : @rle.Spanning + @rle.Mergeable] check_invariants(
-  tree : OrderTree[T],
-) -> String? {
-  match tree.root {
+fn[T : @btree.BTreeElem] check_invariants(tree : OrderTree[T]) -> String? {
+  match tree.tree.root {
     None => {
-      if tree.size != 0 {
+      if tree.tree.size != 0 {
         return Some("empty tree but size != 0")
       }
       None
@@ -226,7 +224,7 @@ fn[T : @rle.Spanning + @rle.Mergeable] check_invariants(
         Some(_) => ()
       }
       // 2. Occupancy (root is exempt from minimum)
-      match check_occupancy(root, tree.min_degree, true) {
+      match check_occupancy(root, tree.tree.min_degree, true) {
         Some(e) => return Some(e)
         None => ()
       }
@@ -237,9 +235,9 @@ fn[T : @rle.Spanning + @rle.Mergeable] check_invariants(
       }
       // 4. Size matches leaf node count
       let actual_size = count_leaf_items(root)
-      if actual_size != tree.size {
+      if actual_size != tree.tree.size {
         return Some(
-          "size mismatch: tree.size=\{tree.size} actual=\{actual_size}",
+          "size mismatch: tree.size=\{tree.tree.size} actual=\{actual_size}",
         )
       }
       // 5. No adjacent mergeable leaves under same parent
