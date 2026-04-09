@@ -79,7 +79,7 @@ fn[T] path_suffix_after_target(
   target_depth : Int,
 ) -> Array[@btree.PathFrame[T]] {
   let suffix : Array[@btree.PathFrame[T]] = []
-  for i = target_depth + 1; i < path.length(); i = i + 1 {
+  for i in (target_depth + 1)..<path.length() {
     suffix.push(path[i])
   }
   suffix
@@ -92,12 +92,12 @@ fn[T] rebuild_boundary_chain(
   keep_left : Bool,
 ) -> BTreeNode[T] {
   let mut current = leaf
-  for i = path_suffix.length() - 1; i >= 0; i = i - 1 {
+  for i in (path_suffix.length() - 1)>=..0 {
     let frame = path_suffix[i]
     let children : Array[BTreeNode[T]] = []
     let counts : Array[Int] = []
     if keep_left {
-      for j = 0; j < frame.child_idx; j = j + 1 {
+      for j in 0..<frame.child_idx {
         children.push(frame.children[j])
         counts.push(frame.counts[j])
       }
@@ -106,7 +106,7 @@ fn[T] rebuild_boundary_chain(
     } else {
       children.push(current)
       counts.push(current.total())
-      for j = frame.child_idx + 1; j < frame.children.length(); j = j + 1 {
+      for j in (frame.child_idx + 1)..<frame.children.length() {
         children.push(frame.children[j])
         counts.push(frame.counts[j])
       }
@@ -142,20 +142,18 @@ fn[T] merge_boundary_chain(
     abort("merge_boundary_chain: mismatched suffix heights")
   }
   let mut current = leaf
-  for i = left_path_suffix.length() - 1; i >= 0; i = i - 1 {
+  for i in (left_path_suffix.length() - 1)>=..0 {
     let left_frame = left_path_suffix[i]
     let right_frame = right_path_suffix[i]
     let children : Array[BTreeNode[T]] = []
     let counts : Array[Int] = []
-    for j = 0; j < left_frame.child_idx; j = j + 1 {
+    for j in 0..<left_frame.child_idx {
       children.push(left_frame.children[j])
       counts.push(left_frame.counts[j])
     }
     children.push(current)
     counts.push(current.total())
-    for j = right_frame.child_idx + 1
-        j < right_frame.children.length()
-        j = j + 1 {
+    for j in (right_frame.child_idx + 1)..<right_frame.children.length() {
       children.push(right_frame.children[j])
       counts.push(right_frame.counts[j])
     }
@@ -311,7 +309,7 @@ fn[T] leaf_count_of_children(
   end_idx : Int,
 ) -> Int {
   let mut total = 0
-  for i = start_idx; i < end_idx; i = i + 1 {
+  for i in start_idx..<end_idx {
     total = total + children[i].leaf_count()
   }
   total

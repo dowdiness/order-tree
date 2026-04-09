@@ -58,13 +58,9 @@ pub fn[T : @btree.BTreeElem] OrderTree::set_at(
 ) -> T? {
   guard pos >= 0 else { return None }
   let deleted = self.delete_at(pos)
-  match deleted {
-    Some(_) => {
-      self.insert_at(pos, elem)
-      deleted
-    }
-    None => None
-  }
+  guard deleted is Some(_) else { return None }
+  self.insert_at(pos, elem)
+  deleted
 }
 
 ///|

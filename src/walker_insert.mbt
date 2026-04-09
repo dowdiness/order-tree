@@ -11,22 +11,19 @@ fn[T : @btree.BTreeElem] compute_insert_splice(
           let merged_left = @rle.Mergeable::merge(left_elem, elem)
           let merged_left_span = @rle.Spanning::span(merged_left)
           let new_leaves : Array[(T, Int)] = [(merged_left, merged_left_span)]
-          match @rle.Mergeable::can_merge(merged_left, ctx.elem) {
-            true => {
-              let merged = @rle.Mergeable::merge(merged_left, ctx.elem)
-              return {
-                start_idx: ctx.child_idx - 1,
-                end_idx: ctx.child_idx + 1,
-                new_leaves: [(merged, @rle.Spanning::span(merged))],
-              }
+          if @rle.Mergeable::can_merge(merged_left, ctx.elem) {
+            let merged = @rle.Mergeable::merge(merged_left, ctx.elem)
+            return {
+              start_idx: ctx.child_idx - 1,
+              end_idx: ctx.child_idx + 1,
+              new_leaves: [(merged, @rle.Spanning::span(merged))],
             }
-            false => {
-              new_leaves.push((ctx.elem, ctx.span))
-              return {
-                start_idx: ctx.child_idx - 1,
-                end_idx: ctx.child_idx + 1,
-                new_leaves,
-              }
+          } else {
+            new_leaves.push((ctx.elem, ctx.span))
+            return {
+              start_idx: ctx.child_idx - 1,
+              end_idx: ctx.child_idx + 1,
+              new_leaves,
             }
           }
         }
