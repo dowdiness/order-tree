@@ -48,11 +48,7 @@ fn[T] lowest_common_ancestor_range(
       counts: target.counts,
       start_idx,
       end_idx: start_idx + 1,
-      child_height: if target.children.length() == 0 {
-        0
-      } else {
-        target.children[0].height()
-      },
+      child_height: target.children[0].height(),
     }
   }
   let target = start.path[prefix_len]
@@ -65,11 +61,7 @@ fn[T] lowest_common_ancestor_range(
     counts: target.counts,
     start_idx,
     end_idx,
-    child_height: if target.children.length() == 0 {
-      0
-    } else {
-      target.children[0].height()
-    },
+    child_height: target.children[0].height(),
   }
 }
 
@@ -163,6 +155,8 @@ fn[T] merge_boundary_chain(
 }
 
 ///|
+// Local because @btree only exports descend_leftmost, not descend_rightmost.
+// Phase 2c will move this to lib/btree alongside descend_leftmost.
 fn[T] descend_rightmost(
   node : BTreeNode[T],
   prefix : Array[@btree.PathFrame[T]],
