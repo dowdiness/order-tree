@@ -64,7 +64,15 @@ OrderTree is a single-field wrapper: `{ tree: @btree.BTree[T] }`. It delegates a
 
 ## Element Requirements
 
-Elements must implement `@btree.BTreeElem`, which requires:
+Trait bounds scale with the operation:
+
+- **Pure queries** (`get_at` / `tree[pos]`, `find`, `size`, `span`, `each`, `to_array`, `iter`, `length`, `is_empty`): no bound on `T`.
+- **Bulk construction** (`from_array`): `@rle.Spanning + @rle.Mergeable`.
+- **Positional mutation and slicing** (`insert_at`, `delete_at`, `delete_range`, `set_at` / `tree[pos] = item`, `view` / `tree[start:end]`): `@btree.BTreeElem`, the super trait `@rle.Spanning + @rle.Mergeable + @rle.Sliceable`.
+
+`view` needs `Sliceable` because it may split an element at a span boundary when materializing the slice — not because it mutates.
+
+Traits:
 - `@rle.Spanning` — how much span an element occupies
 - `@rle.Mergeable` — when adjacent elements can merge (RLE compression)
 - `@rle.Sliceable` — how to split an element at a position
