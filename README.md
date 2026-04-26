@@ -46,7 +46,7 @@ tree.delete_range(1, 3)    // ["b", "d"]
 | `view(start?, end?)` / `tree[start:end]` | Slice elements in range | O(k + log n) |
 | `iter()` | Lazy iterator over all elements | O(n) total |
 | `span()` | Total span | O(1) |
-| `size()` | Number of elements | O(1) |
+| `size()` | Number of RLE runs (≤ logical length when adjacent items merge) | O(1) |
 
 *Falls back to O(n) rebuild for some boundary cases.
 
