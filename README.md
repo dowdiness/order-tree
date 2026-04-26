@@ -2,7 +2,7 @@
 
 Position-indexed sequence for [MoonBit](https://www.moonbitlang.com/) with O(log n) insert, delete, and lookup by index.
 
-Built on [`dowdiness/btree`](https://github.com/dowdiness/canopy/tree/main/lib/btree) (a counted B+ tree). OrderTree adds a high-level API for common sequence operations — insert at position, delete at position, bulk construction from arrays, and operator overloads.
+Built on [`dowdiness/btree`](https://mooncakes.io/docs/dowdiness/btree@0.1.0) (a counted B+ tree). OrderTree adds a high-level API for common sequence operations — insert at position, delete at position, bulk construction from arrays, and operator overloads.
 
 ## Install
 
@@ -36,7 +36,7 @@ tree.delete_range(1, 3)    // ["b", "d"]
 | Method | Description | Complexity |
 |--------|-------------|------------|
 | `OrderTree::new(min_degree?)` | Create empty tree | O(1) |
-| `OrderTree::from_array(items)` | Bulk build from array | O(n) |
+| `OrderTree::from_array(items, min_degree?)` | Bulk build from array | O(n) |
 | `get_at(pos)` / `tree[pos]` | Element at position | O(log n) |
 | `find(pos)` | Element + offset within element | O(log n) |
 | `insert_at(pos, elem)` | Insert element at position | O(log n) |
@@ -77,7 +77,7 @@ Traits:
 - `@rle.Mergeable` — when adjacent elements can merge (RLE compression)
 - `@rle.Sliceable` — how to split an element at a position
 
-See [`dowdiness/rle`](https://github.com/dowdiness/canopy/tree/main/rle) for trait details.
+See [`dowdiness/rle`](https://mooncakes.io/docs/dowdiness/rle@0.2.0) for trait details.
 
 ## Architecture
 
