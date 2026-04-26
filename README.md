@@ -79,6 +79,42 @@ Traits:
 
 See [`dowdiness/rle`](https://mooncakes.io/docs/dowdiness/rle@0.2.0) for trait details.
 
+## Defining Your Element Type
+
+To use mutation and slicing operations you need an element type that implements `@btree.BTreeElem`. Add the dependencies that contribute the traits:
+
+```bash
+moon add dowdiness/order-tree
+moon add dowdiness/rle
+moon add dowdiness/btree
+```
+
+```moonbit
+// Each E occupies span 1 and never merges with its neighbour.
+pub struct E {
+  v : Int
+} derive(Eq)
+
+pub impl @rle.HasLength for E with length(_self) { 1 }
+
+pub impl @rle.Spanning for E with span(_self) { 1 }
+
+pub impl @rle.Mergeable for E with can_merge(_a, _b) { false }
+pub impl @rle.Mergeable for E with merge(a, _b) { a }
+
+pub impl @rle.Sliceable for E with slice(self, start~, end~) {
+  let _ = start
+  let _ = end
+  Ok(self)
+}
+
+// BTreeElem is an empty super-trait. MoonBit emits warning [0027]
+// for implicit empty-trait impls, so add an explicit one:
+pub impl @btree.BTreeElem for E
+```
+
+For RLE-merging behaviour (adjacent runs of the same value collapse to a single leaf), make `can_merge` return `true` for compatible neighbours and have `merge` combine their spans. See `dowdiness/rle` for the full contract.
+
 ## Architecture
 
 ```
