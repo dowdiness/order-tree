@@ -7,7 +7,7 @@
     "dowdiness/rle": "0.2.0",
     "moonbitlang/quickcheck": "0.11.2"
   },
-  "repository": "https://github.com/dowdiness/canopy",
+  "repository": "https://github.com/dowdiness/order-tree",
   "readme": "README.md",
   "exclude": ["docs/"],
   "license": "Apache-2.0",
