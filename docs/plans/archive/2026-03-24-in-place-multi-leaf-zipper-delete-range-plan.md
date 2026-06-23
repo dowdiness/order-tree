@@ -1,3 +1,8 @@
+> **ARCHIVED** — This plan describes range-delete logic for the old walker
+> architecture. `delete_range` now delegates directly to `@btree.BTree.delete_range`;
+> the range-specific walker types (AncestorRange, NodeSplice, BoundarySubtrees)
+> and files (walker_range.mbt, walker_range_delete.mbt) do not exist in the
+> current codebase. Archived 2026-06-23.
 # In-Place Multi-Leaf Zipper `delete_range` Plan
 
 ## Current Status

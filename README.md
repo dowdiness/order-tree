@@ -41,14 +41,12 @@ tree.delete_range(1, 3)    // ["b", "d"]
 | `find(pos)` | Element + offset within element | O(log n) |
 | `insert_at(pos, elem)` | Insert element at position | O(log n) |
 | `delete_at(pos)` | Delete element at position | O(log n) |
-| `delete_range(start, end)` | Delete span range [start, end) | O(log n)* |
+| `delete_range(start, end)` | Delete span range [start, end) | O(log n) |
 | `set_at(pos, elem)` / `tree[pos] = elem` | Replace element | O(log n) |
 | `view(start?, end?)` / `tree[start:end]` | Slice elements in range | O(k + log n) |
 | `iter()` | Lazy iterator over all elements | O(n) total |
 | `span()` | Total span | O(1) |
 | `size()` | Number of RLE runs (≤ logical length when adjacent items merge) | O(1) |
-
-*Falls back to O(n) rebuild for some boundary cases.
 
 ## When to Use OrderTree vs BTree
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.1 — 2026-06-23
+
+### Added
+
+- README: "Defining Your Element Type" walkthrough with copy-pasteable example
+  covering all four RLE trait impls and the `BTreeElem` super trait. [64dc573]
+
+### Changed
+
+- Migrate to MoonBit v0.10+ project layout: `moon.mod.json` → TOML `moon.mod`,
+  packages moved from `src/` to module root. [1359250]
+- Update `rle` dependency 0.2.0 → 0.2.2 and `quickcheck` 0.11.2 → 0.14.0. [cf42767]
+
+### Fixed
+
+- README: remove stale claim that `delete_range` "falls back to O(n) rebuild";
+  the operation delegates to `@btree.BTree` with no such fallback in this layer.
+- Archive two superseded plan files describing a walker architecture that was
+  replaced by the thin `@btree.BTree[T]` wrapper pattern.
+
 ## 0.1.0 — Initial release
 
 First tagged release of `order-tree`: a positional B-tree with run-length-encoded leaves for ordered collections. Thin wrapper over [`dowdiness/btree`](https://mooncakes.io/docs/dowdiness/btree@0.1.0); uses element traits from [`dowdiness/rle`](https://mooncakes.io/docs/dowdiness/rle@0.2.0).

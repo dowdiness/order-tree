@@ -1,3 +1,9 @@
+> **ARCHIVED** — This plan describes a custom walker/zipper architecture that was
+> replaced by a thin `@btree.BTree[T]` wrapper. All operations now delegate to
+> the underlying B-tree; the walker types (PathFrame, Cursor, Splice, etc.) and
+> files (walker_descend.mbt, walker_propagate.mbt, etc.) do not exist in the
+> current codebase. See `order_tree.mbt` for the actual thin-wrapper implementation.
+> Archived 2026-06-23.
 # Implementation Plan: Tree Walker (Zipper) Infrastructure for order-tree
 
 ## Status
