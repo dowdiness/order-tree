@@ -4,8 +4,8 @@ version = "0.1.0"
 
 import {
   "dowdiness/btree@0.1.0",
-  "dowdiness/rle@0.2.0",
-  "moonbitlang/quickcheck@0.11.2",
+  "dowdiness/rle@0.2.2",
+  "moonbitlang/quickcheck@0.14.0",
 }
 
 readme = "README.md"

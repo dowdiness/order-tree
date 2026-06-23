@@ -1,16 +1,16 @@
 import {
-  "dowdiness/btree" @btree,
-  "dowdiness/rle" @rle,
-  "moonbitlang/core/bench" @bench,
+  "dowdiness/btree",
+  "dowdiness/rle",
+  "moonbitlang/core/bench",
 }
 
 import {
-  "moonbitlang/core/debug" @debug,
+  "moonbitlang/core/debug",
   "moonbitlang/core/quickcheck",
 } for "test"
-
 import {
-  "moonbitlang/core/debug" @debug,
+  "moonbitlang/core/debug",
+  "moonbitlang/quickcheck" @qc,
 } for "wbtest"
 
 warnings = "-15-2"
