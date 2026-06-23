@@ -252,7 +252,7 @@ fn[T : @btree.BTreeElem] check_invariants(tree : OrderTree[T]) -> String? {
 
 ///|
 test "invariants hold after sequential inserts" {
-  @qc.quick_check_fn(fn(count: Int) -> Bool {
+  @qc.quick_check_fn(fn(count : Int) -> Bool {
     let r = count % 50
     let count = if r < 0 { -r } else { r }
     let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
@@ -269,7 +269,7 @@ test "invariants hold after sequential inserts" {
 
 ///|
 test "invariants hold after sequential deletes" {
-  @qc.quick_check_fn(fn(count: Int) -> Bool {
+  @qc.quick_check_fn(fn(count : Int) -> Bool {
     let r = count % 50
     let count = if r < 0 { -r } else { r }
     let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
@@ -289,10 +289,13 @@ test "invariants hold after sequential deletes" {
 
 ///|
 test "invariants hold after from_array" {
-  @qc.quick_check_fn(fn(n: Int) -> Bool {
+  @qc.quick_check_fn(fn(n : Int) -> Bool {
     let r = n % 50
     let n = if r < 0 { -r } else { r }
-    let tree = OrderTree::from_array(Array::makei(n, fn(i) { mki(i) }), min_degree=2)
+    let tree = OrderTree::from_array(
+      Array::makei(n, fn(i) { mki(i) }),
+      min_degree=2,
+    )
     match check_invariants(tree) {
       Some(_) => false
       None => true

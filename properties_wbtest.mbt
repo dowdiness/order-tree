@@ -1,6 +1,6 @@
 ///|
 test "property: insert then get roundtrip" {
-  @qc.quick_check_fn(fn(size: Int) -> Bool {
+  @qc.quick_check_fn(fn(size : Int) -> Bool {
     let r = size % 50
     let size = if r < 0 { -r } else { r }
     let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
@@ -33,15 +33,19 @@ test "property: delete reduces span" {
 
 ///|
 test "property: from_array then to_array roundtrip" {
-  @qc.quick_check_fn(fn(size: Int) -> Bool {
+  @qc.quick_check_fn(fn(size : Int) -> Bool {
     let r = size % 100
     let size = if r < 0 { -r } else { r }
     let items = Array::makei(size, fn(i) { mki(i) })
     let tree = OrderTree::from_array(items, min_degree=2)
     let result = tree.to_array()
-    if result.length() != size { return false }
+    if result.length() != size {
+      return false
+    }
     for i = 0; i < size; i = i + 1 {
-      if result[i].value != i { return false }
+      if result[i].value != i {
+        return false
+      }
     }
     true
   })
@@ -49,7 +53,7 @@ test "property: from_array then to_array roundtrip" {
 
 ///|
 test "property: random operations maintain invariants" {
-  @qc.quick_check_fn(fn(ops: Array[Int]) -> Bool {
+  @qc.quick_check_fn(fn(ops : Array[Int]) -> Bool {
     let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
     let limit = if ops.length() > 200 { 200 } else { ops.length() }
     for i = 0; i < limit; i = i + 1 {
