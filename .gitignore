@@ -1,3 +1,5 @@
 .mooncakes/
 _build/
 target/
+test_output.html
+test_output.svg
