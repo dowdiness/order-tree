@@ -27,7 +27,7 @@ test "property: delete reduces span" {
     let before = tree.span()
     ignore(tree.delete_at(0))
     let after = tree.span()
-    inspect(before - after == 1, content="true")
+    @debug.debug_inspect(before - after == 1, content="true")
   }
 }
 
