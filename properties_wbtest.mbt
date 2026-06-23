@@ -1,21 +1,20 @@
 ///|
 test "property: insert then get roundtrip" {
-  // For sizes 0..50, build tree via inserts, verify get_at matches
-  for size = 0; size < 50; size = size + 1 {
+  @qc.quick_check_fn(fn(size: Int) -> Bool {
+    let r = size % 50
+    let size = if r < 0 { -r } else { r }
     let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
     for i = 0; i < size; i = i + 1 {
       tree.insert_at(i, mki(i))
     }
     for i = 0; i < size; i = i + 1 {
       match tree.get_at(i) {
-        Some(item) =>
-          if item.value != i {
-            fail("get_at(\{i}) returned \{item.value}, expected \{i}")
-          }
-        None => fail("get_at(\{i}) returned None for size \{size}")
+        Some(item) => if item.value != i { return false }
+        None => return false
       }
     }
-  }
+    true
+  })
 }
 
 ///|
@@ -34,39 +33,43 @@ test "property: delete reduces span" {
 
 ///|
 test "property: from_array then to_array roundtrip" {
-  for size = 0; size < 100; size = size + 1 {
+  @qc.quick_check_fn(fn(size: Int) -> Bool {
+    let r = size % 100
+    let size = if r < 0 { -r } else { r }
     let items = Array::makei(size, fn(i) { mki(i) })
     let tree = OrderTree::from_array(items, min_degree=2)
     let result = tree.to_array()
-    if result.length() != size {
-      fail("roundtrip size mismatch: \{result.length()} != \{size}")
-    }
+    if result.length() != size { return false }
     for i = 0; i < size; i = i + 1 {
-      if result[i].value != i {
-        fail("roundtrip value mismatch at \{i}")
-      }
+      if result[i].value != i { return false }
     }
-  }
+    true
+  })
 }
 
 ///|
 test "property: random operations maintain invariants" {
-  let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
-  let mut seed = 42
-  for op = 0; op < 200; op = op + 1 {
-    seed = ((seed * 1103515245 + 12345) % 2147483647).abs()
-    if tree.span() == 0 || seed % 3 != 0 {
-      // Insert at random position
-      let pos = if tree.span() == 0 { 0 } else { seed % (tree.span() + 1) }
-      tree.insert_at(pos, mki(op))
-    } else {
-      // Delete at random position
-      let pos = seed % tree.span()
-      ignore(tree.delete_at(pos))
+  @qc.quick_check_fn(fn(ops: Array[Int]) -> Bool {
+    let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
+    let limit = if ops.length() > 200 { 200 } else { ops.length() }
+    for i = 0; i < limit; i = i + 1 {
+      let v = ops[i]
+      let r = v % 3
+      let op_type = if r < 0 { -r } else { r }
+      if tree.span() == 0 || op_type != 0 {
+        let r = v % (tree.span() + 1)
+        let pos = if r < 0 { -r } else { r }
+        tree.insert_at(pos, mki(i))
+      } else {
+        let r = v % tree.span()
+        let pos = if r < 0 { -r } else { r }
+        ignore(tree.delete_at(pos))
+      }
+      match check_invariants(tree) {
+        Some(_) => return false
+        None => ()
+      }
     }
-    match check_invariants(tree) {
-      Some(e) => fail("op \{op}: \{e}")
-      None => ()
-    }
-  }
+    true
+  })
 }

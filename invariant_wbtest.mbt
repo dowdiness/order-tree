@@ -5,27 +5,27 @@ priv struct TI {
 }
 
 ///|
-impl @rle.HasLength for TI with length(_self) -> Int {
+impl @rle.HasLength for TI with fn length(_self) -> Int {
   1
 }
 
 ///|
-impl @rle.Spanning for TI with span(_self) -> Int {
+impl @rle.Spanning for TI with fn span(_self) -> Int {
   1
 }
 
 ///|
-impl @rle.Mergeable for TI with can_merge(_self, _other) -> Bool {
+impl @rle.Mergeable for TI with fn can_merge(_self, _other) -> Bool {
   false
 }
 
 ///|
-impl @rle.Mergeable for TI with merge(_self, _other) -> TI {
+impl @rle.Mergeable for TI with fn merge(_self, _other) -> TI {
   abort("TI::merge: unreachable — can_merge always returns false")
 }
 
 ///|
-impl @rle.Sliceable for TI with slice(self, start~ : Int, end~ : Int) -> Result[
+impl @rle.Sliceable for TI with fn slice(self, start~ : Int, end~ : Int) -> Result[
   TI,
   @rle.RleError,
 ] {
@@ -252,43 +252,52 @@ fn[T : @btree.BTreeElem] check_invariants(tree : OrderTree[T]) -> String? {
 
 ///|
 test "invariants hold after sequential inserts" {
-  let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
-  for i = 0; i < 50; i = i + 1 {
-    tree.insert_at(i, mki(i))
-    match check_invariants(tree) {
-      Some(e) => fail("after insert \{i}: \{e}")
-      None => ()
+  @qc.quick_check_fn(fn(count: Int) -> Bool {
+    let r = count % 50
+    let count = if r < 0 { -r } else { r }
+    let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
+    for i = 0; i < count; i = i + 1 {
+      tree.insert_at(i, mki(i))
+      match check_invariants(tree) {
+        Some(_) => return false
+        None => ()
+      }
     }
-  }
+    true
+  })
 }
 
 ///|
 test "invariants hold after sequential deletes" {
-  let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
-  for i = 0; i < 50; i = i + 1 {
-    tree.insert_at(i, mki(i))
-  }
-  for i = 0; i < 50; i = i + 1 {
-    ignore(tree.delete_at(0))
-    match check_invariants(tree) {
-      Some(e) => fail("after delete \{i}: \{e}")
-      None => ()
+  @qc.quick_check_fn(fn(count: Int) -> Bool {
+    let r = count % 50
+    let count = if r < 0 { -r } else { r }
+    let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
+    for i = 0; i < count; i = i + 1 {
+      tree.insert_at(i, mki(i))
     }
-  }
+    for i = 0; i < count; i = i + 1 {
+      ignore(tree.delete_at(0))
+      match check_invariants(tree) {
+        Some(_) => return false
+        None => ()
+      }
+    }
+    true
+  })
 }
 
 ///|
 test "invariants hold after from_array" {
-  for n = 0; n < 50; n = n + 1 {
-    let tree = OrderTree::from_array(
-      Array::makei(n, fn(i) { mki(i) }),
-      min_degree=2,
-    )
+  @qc.quick_check_fn(fn(n: Int) -> Bool {
+    let r = n % 50
+    let n = if r < 0 { -r } else { r }
+    let tree = OrderTree::from_array(Array::makei(n, fn(i) { mki(i) }), min_degree=2)
     match check_invariants(tree) {
-      Some(e) => fail("from_array(\{n}): \{e}")
-      None => ()
+      Some(_) => false
+      None => true
     }
-  }
+  })
 }
 
 ///|
