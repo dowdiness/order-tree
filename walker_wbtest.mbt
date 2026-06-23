@@ -5,9 +5,6 @@ priv struct Run {
 } derive(Debug)
 
 ///|
-impl Show for Run with fn output(self, logger) {
-  logger.write_string(@debug.to_string(self))
-}
 
 ///|
 fn run(ch : String, span : Int) -> Run {
@@ -61,21 +58,21 @@ test "delete_at collapses root after propagated child removal" {
   ignore(tree.delete_at(0))
   ignore(tree.delete_at(0))
   ignore(tree.delete_at(0))
-  inspect(tree.span(), content="2")
-  inspect(
+  @debug.debug_inspect(tree.span(), content="2")
+  @debug.debug_inspect(
     tree.find(0).map(fn(fr) { fr.elem }),
     content=(
       #|Some({ ch: "4", span: 1 })
     ),
   )
-  inspect(
+  @debug.debug_inspect(
     tree.find(1).map(fn(fr) { fr.elem }),
     content=(
       #|Some({ ch: "5", span: 1 })
     ),
   )
   match tree.tree.root {
-    Some(Internal(children~, ..)) => inspect(children.length(), content="2")
-    _ => inspect("bad root", content="\"unexpected\"")
+    Some(Internal(children~, ..)) => @debug.debug_inspect(children.length(), content="2")
+    _ => @debug.debug_inspect("bad root", content="\"unexpected\"")
   }
 }
