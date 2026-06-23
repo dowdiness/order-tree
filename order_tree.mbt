@@ -10,25 +10,27 @@ pub fn[T] OrderTree::size(self : OrderTree[T]) -> Int {
 }
 
 ///|
-pub impl[T] @rle.HasLength for OrderTree[T] with is_empty(self : OrderTree[T]) -> Bool {
+pub impl[T] @rle.HasLength for OrderTree[T] with fn is_empty(
+  self : OrderTree[T],
+) -> Bool {
   self.tree.is_empty()
 }
 
 ///|
 /// HasLength: number of leaf entries (same as size).
-pub impl[T] @rle.HasLength for OrderTree[T] with length(self) -> Int {
+pub impl[T] @rle.HasLength for OrderTree[T] with fn length(self) -> Int {
   self.tree.size()
 }
 
 ///|
 /// Spanning: total span across all elements. O(1) via cached root total.
-pub impl[T] @rle.Spanning for OrderTree[T] with span(self) -> Int {
+pub impl[T] @rle.Spanning for OrderTree[T] with fn span(self) -> Int {
   self.tree.span()
 }
 
 ///|
 /// Spanning: logical_length defaults to span for now.
-pub impl[T] @rle.Spanning for OrderTree[T] with logical_length(self) -> Int {
+pub impl[T] @rle.Spanning for OrderTree[T] with fn logical_length(self) -> Int {
   self.tree.span()
 }
 

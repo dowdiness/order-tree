@@ -4,27 +4,27 @@ priv struct BItem {
 }
 
 ///|
-impl @rle.HasLength for BItem with length(_self) {
+impl @rle.HasLength for BItem with fn length(_self) {
   1
 }
 
 ///|
-impl @rle.Spanning for BItem with span(_self) {
+impl @rle.Spanning for BItem with fn span(_self) {
   1
 }
 
 ///|
-impl @rle.Mergeable for BItem with can_merge(_self, _other) -> Bool {
+impl @rle.Mergeable for BItem with fn can_merge(_self, _other) -> Bool {
   false
 }
 
 ///|
-impl @rle.Mergeable for BItem with merge(_self, _other) -> BItem {
+impl @rle.Mergeable for BItem with fn merge(_self, _other) -> BItem {
   abort("BItem::merge: unreachable — can_merge always returns false")
 }
 
 ///|
-impl @rle.Sliceable for BItem with slice(self, start~ : Int, end~ : Int) -> Result[
+impl @rle.Sliceable for BItem with fn slice(self, start~ : Int, end~ : Int) -> Result[
   BItem,
   @rle.RleError,
 ] {
@@ -229,27 +229,27 @@ priv struct BMItem {
 }
 
 ///|
-impl @rle.HasLength for BMItem with length(self) -> Int {
+impl @rle.HasLength for BMItem with fn length(self) -> Int {
   self.count
 }
 
 ///|
-impl @rle.Spanning for BMItem with span(self) -> Int {
+impl @rle.Spanning for BMItem with fn span(self) -> Int {
   self.count
 }
 
 ///|
-impl @rle.Mergeable for BMItem with can_merge(self, other) -> Bool {
+impl @rle.Mergeable for BMItem with fn can_merge(self, other) -> Bool {
   self.start + self.count == other.start
 }
 
 ///|
-impl @rle.Mergeable for BMItem with merge(self, other) -> BMItem {
+impl @rle.Mergeable for BMItem with fn merge(self, other) -> BMItem {
   { start: self.start, count: self.count + other.count }
 }
 
 ///|
-impl @rle.Sliceable for BMItem with slice(self, start~ : Int, end~ : Int) -> Result[
+impl @rle.Sliceable for BMItem with fn slice(self, start~ : Int, end~ : Int) -> Result[
   BMItem,
   @rle.RleError,
 ] {

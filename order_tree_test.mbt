@@ -4,32 +4,32 @@ priv struct TItem {
 } derive(Debug)
 
 ///|
-impl Show for TItem with output(self, logger) {
+impl Show for TItem with fn output(self, logger) {
   logger.write_string(@debug.to_string(self))
 }
 
 ///|
-impl @rle.HasLength for TItem with length(_self) -> Int {
+impl @rle.HasLength for TItem with fn length(_self) -> Int {
   1
 }
 
 ///|
-impl @rle.Spanning for TItem with span(_self) -> Int {
+impl @rle.Spanning for TItem with fn span(_self) -> Int {
   1
 }
 
 ///|
-impl @rle.Mergeable for TItem with can_merge(_self, _other) -> Bool {
+impl @rle.Mergeable for TItem with fn can_merge(_self, _other) -> Bool {
   false
 }
 
 ///|
-impl @rle.Mergeable for TItem with merge(_self, _other) -> TItem {
+impl @rle.Mergeable for TItem with fn merge(_self, _other) -> TItem {
   abort("TItem::merge: unreachable — can_merge always returns false")
 }
 
 ///|
-impl @rle.Sliceable for TItem with slice(self, start~ : Int, end~ : Int) -> Result[
+impl @rle.Sliceable for TItem with fn slice(self, start~ : Int, end~ : Int) -> Result[
   TItem,
   @rle.RleError,
 ] {
@@ -463,27 +463,27 @@ priv struct MItem {
 }
 
 ///|
-impl @rle.HasLength for MItem with length(self) -> Int {
+impl @rle.HasLength for MItem with fn length(self) -> Int {
   self.count
 }
 
 ///|
-impl @rle.Spanning for MItem with span(self) -> Int {
+impl @rle.Spanning for MItem with fn span(self) -> Int {
   self.count
 }
 
 ///|
-impl @rle.Mergeable for MItem with can_merge(self, other) -> Bool {
+impl @rle.Mergeable for MItem with fn can_merge(self, other) -> Bool {
   self.start + self.count == other.start
 }
 
 ///|
-impl @rle.Mergeable for MItem with merge(self, other) -> MItem {
+impl @rle.Mergeable for MItem with fn merge(self, other) -> MItem {
   { start: self.start, count: self.count + other.count }
 }
 
 ///|
-impl @rle.Sliceable for MItem with slice(self, start~ : Int, end~ : Int) -> Result[
+impl @rle.Sliceable for MItem with fn slice(self, start~ : Int, end~ : Int) -> Result[
   MItem,
   @rle.RleError,
 ] {

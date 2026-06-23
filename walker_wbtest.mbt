@@ -5,7 +5,7 @@ priv struct Run {
 } derive(Debug)
 
 ///|
-impl Show for Run with output(self, logger) {
+impl Show for Run with fn output(self, logger) {
   logger.write_string(@debug.to_string(self))
 }
 
@@ -15,27 +15,27 @@ fn run(ch : String, span : Int) -> Run {
 }
 
 ///|
-impl @rle.HasLength for Run with length(self : Run) -> Int {
+impl @rle.HasLength for Run with fn length(self : Run) -> Int {
   self.span
 }
 
 ///|
-impl @rle.Spanning for Run with span(self : Run) -> Int {
+impl @rle.Spanning for Run with fn span(self : Run) -> Int {
   self.span
 }
 
 ///|
-impl @rle.Mergeable for Run with can_merge(self : Run, other : Run) -> Bool {
+impl @rle.Mergeable for Run with fn can_merge(self : Run, other : Run) -> Bool {
   self.ch == other.ch
 }
 
 ///|
-impl @rle.Mergeable for Run with merge(self : Run, other : Run) -> Run {
+impl @rle.Mergeable for Run with fn merge(self : Run, other : Run) -> Run {
   { ch: self.ch, span: self.span + other.span }
 }
 
 ///|
-impl @rle.Sliceable for Run with slice(self : Run, start~ : Int, end~ : Int) -> Result[
+impl @rle.Sliceable for Run with fn slice(self : Run, start~ : Int, end~ : Int) -> Result[
   Run,
   @rle.RleError,
 ] {
