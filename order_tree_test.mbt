@@ -71,7 +71,10 @@ test "insert_at into empty tree" {
   tree.insert_at(0, ti(42))
   @debug.debug_inspect(tree.span(), content="1")
   @debug.debug_inspect(tree.size(), content="1")
-  @debug.debug_inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(42)")
+  @debug.debug_inspect(
+    tree.get_at(0).map(fn(t) { t.value }),
+    content="Some(42)",
+  )
 }
 
 ///|
@@ -91,7 +94,10 @@ test "insert_at at end" {
   }
   @debug.debug_inspect(tree.span(), content="5")
   for i = 0; i < 5; i = i + 1 {
-    @debug.debug_inspect(tree.get_at(i).map(fn(t) { t.value }) == Some(i), content="true")
+    @debug.debug_inspect(
+      tree.get_at(i).map(fn(t) { t.value }) == Some(i),
+      content="true",
+    )
   }
 }
 
@@ -107,7 +113,10 @@ test "insert_at in middle" {
   @debug.debug_inspect(tree.span(), content="6")
   @debug.debug_inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(0)")
   @debug.debug_inspect(tree.get_at(1).map(fn(t) { t.value }), content="Some(1)")
-  @debug.debug_inspect(tree.get_at(2).map(fn(t) { t.value }), content="Some(99)")
+  @debug.debug_inspect(
+    tree.get_at(2).map(fn(t) { t.value }),
+    content="Some(99)",
+  )
   @debug.debug_inspect(tree.get_at(3).map(fn(t) { t.value }), content="Some(2)")
 }
 
@@ -120,7 +129,10 @@ test "insert_at triggers leaf split" {
   }
   @debug.debug_inspect(tree.span(), content="4")
   @debug.debug_inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(0)")
-  @debug.debug_inspect(tree.get_at(3).map(fn(t) { t.value }), content="Some(30)")
+  @debug.debug_inspect(
+    tree.get_at(3).map(fn(t) { t.value }),
+    content="Some(30)",
+  )
 }
 
 ///|
@@ -131,8 +143,14 @@ test "insert_at 100 sequential items" {
   }
   @debug.debug_inspect(tree.span(), content="100")
   @debug.debug_inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(0)")
-  @debug.debug_inspect(tree.get_at(50).map(fn(t) { t.value }), content="Some(50)")
-  @debug.debug_inspect(tree.get_at(99).map(fn(t) { t.value }), content="Some(99)")
+  @debug.debug_inspect(
+    tree.get_at(50).map(fn(t) { t.value }),
+    content="Some(50)",
+  )
+  @debug.debug_inspect(
+    tree.get_at(99).map(fn(t) { t.value }),
+    content="Some(99)",
+  )
 }
 
 ///|
@@ -199,8 +217,14 @@ test "delete_at triggers underflow and borrow/merge" {
     ignore(tree.delete_at(0))
   }
   @debug.debug_inspect(tree.span(), content="2")
-  @debug.debug_inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(50)")
-  @debug.debug_inspect(tree.get_at(1).map(fn(t) { t.value }), content="Some(60)")
+  @debug.debug_inspect(
+    tree.get_at(0).map(fn(t) { t.value }),
+    content="Some(50)",
+  )
+  @debug.debug_inspect(
+    tree.get_at(1).map(fn(t) { t.value }),
+    content="Some(60)",
+  )
 }
 
 ///|
@@ -220,7 +244,10 @@ test "delete all items one by one" {
   }
   for i = 0; i < 20; i = i + 1 {
     let deleted = tree.delete_at(0)
-    @debug.debug_inspect(deleted.map(fn(t) { t.value }) == Some(i), content="true")
+    @debug.debug_inspect(
+      deleted.map(fn(t) { t.value }) == Some(i),
+      content="true",
+    )
   }
   @debug.debug_inspect(tree.is_empty(), content="true")
 }
@@ -233,7 +260,10 @@ test "set_at replaces item" {
   }
   let old = tree.set_at(2, ti(99))
   @debug.debug_inspect(old.map(fn(t) { t.value }), content="Some(2)")
-  @debug.debug_inspect(tree.get_at(2).map(fn(t) { t.value }), content="Some(99)")
+  @debug.debug_inspect(
+    tree.get_at(2).map(fn(t) { t.value }),
+    content="Some(99)",
+  )
   @debug.debug_inspect(tree.span(), content="5")
 }
 
@@ -332,7 +362,10 @@ test "from_array empty" {
 test "from_array single item" {
   let tree = OrderTree::from_array([ti(42)])
   @debug.debug_inspect(tree.span(), content="1")
-  @debug.debug_inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(42)")
+  @debug.debug_inspect(
+    tree.get_at(0).map(fn(t) { t.value }),
+    content="Some(42)",
+  )
 }
 
 ///|
@@ -341,7 +374,10 @@ test "from_array 10 items" {
   let tree = OrderTree::from_array(items)
   @debug.debug_inspect(tree.span(), content="10")
   for i = 0; i < 10; i = i + 1 {
-    @debug.debug_inspect(tree.get_at(i).map(fn(t) { t.value }) == Some(i), content="true")
+    @debug.debug_inspect(
+      tree.get_at(i).map(fn(t) { t.value }) == Some(i),
+      content="true",
+    )
   }
 }
 
@@ -363,7 +399,10 @@ test "from_array with small min_degree" {
   let tree = OrderTree::from_array(items, min_degree=2)
   @debug.debug_inspect(tree.span(), content="20")
   for i = 0; i < 20; i = i + 1 {
-    @debug.debug_inspect(tree.get_at(i).map(fn(t) { t.value }) == Some(i), content="true")
+    @debug.debug_inspect(
+      tree.get_at(i).map(fn(t) { t.value }) == Some(i),
+      content="true",
+    )
   }
 }
 
@@ -375,7 +414,10 @@ test "from_array then delete works" {
   )
   ignore(tree.delete_at(25))
   @debug.debug_inspect(tree.span(), content="49")
-  @debug.debug_inspect(tree.get_at(25).map(fn(t) { t.value }), content="Some(26)")
+  @debug.debug_inspect(
+    tree.get_at(25).map(fn(t) { t.value }),
+    content="Some(26)",
+  )
 }
 
 ///|
@@ -386,7 +428,10 @@ test "from_array then insert works" {
   )
   tree.insert_at(25, ti(999))
   @debug.debug_inspect(tree.span(), content="51")
-  @debug.debug_inspect(tree.get_at(25).map(fn(t) { t.value }), content="Some(999)")
+  @debug.debug_inspect(
+    tree.get_at(25).map(fn(t) { t.value }),
+    content="Some(999)",
+  )
 }
 
 ///|

@@ -72,7 +72,8 @@ test "delete_at collapses root after propagated child removal" {
     ),
   )
   match tree.tree.root {
-    Some(Internal(children~, ..)) => @debug.debug_inspect(children.length(), content="2")
+    Some(Internal(children~, ..)) =>
+      @debug.debug_inspect(children.length(), content="2")
     _ => @debug.debug_inspect("bad root", content="\"unexpected\"")
   }
 }
