@@ -407,6 +407,30 @@ test "from_array with small min_degree" {
 }
 
 ///|
+test "from_array degree boundaries preserve public queries" {
+  for n in [4, 5, 17] {
+    let items = Array::makei(n, i => ti(i))
+    let tree = OrderTree::from_array(items, min_degree=2)
+    @debug.debug_inspect(tree.size() == n, content="true")
+    @debug.debug_inspect(tree.span() == n, content="true")
+    let roundtrip = tree.to_array()
+    @debug.debug_inspect(roundtrip.length() == n, content="true")
+    for i in 0..<n {
+      @debug.debug_inspect(roundtrip[i].value == i, content="true")
+      @debug.debug_inspect(
+        tree.find(i).unwrap().elem.value == i,
+        content="true",
+      )
+    }
+    let middle = tree.view(start=1, end=n - 1)
+    @debug.debug_inspect(middle.length() == n - 2, content="true")
+    for i in 0..<middle.length() {
+      @debug.debug_inspect(middle[i].value == i + 1, content="true")
+    }
+  }
+}
+
+///|
 test "from_array then delete works" {
   let tree = OrderTree::from_array(
     Array::makei(50, fn(i) { ti(i) }),
@@ -644,8 +668,8 @@ test "from_array merges consecutive items" {
 }
 
 ///|
-test "from_array filters zero-span" {
-  let items = [mr(0, 0), mi(1), mr(2, 0), mi(2)]
+test "from_array filters non-positive spans" {
+  let items = [mr(0, 0), mr(9, -1), mi(1), mr(2, 0), mi(2)]
   let tree = OrderTree::from_array(items, min_degree=3)
   @debug.debug_inspect(tree.size(), content="1") // [1..3) after filter + merge
   @debug.debug_inspect(tree.span(), content="2")
