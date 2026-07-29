@@ -52,26 +52,41 @@ test "property: from_array then to_array roundtrip" {
 }
 
 ///|
-test "property: random operations maintain invariants" {
+test "property: random operations including invalid set_at maintain invariants" {
   @qc.quick_check_fn(fn(ops : Array[Int]) -> Bool {
-    let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
-    let limit = if ops.length() > 200 { 200 } else { ops.length() }
+    let tree = OrderTree::from_array([mki(0)], min_degree=2)
+    let generated_limit = if ops.length() > 200 { 200 } else { ops.length() }
+    // Two synthetic operations make both invalid spans run even for an empty
+    // generated array. Keeping at least one item makes every set_at position
+    // valid instead of allowing a vacuous success.
+    let limit = generated_limit + 2
     for i = 0; i < limit; i = i + 1 {
-      let v = ops[i]
-      let r = v % 3
-      let op_type = if r < 0 { -r } else { r }
-      if tree.span() == 0 || op_type != 0 {
-        let r = v % (tree.span() + 1)
-        let pos = if r < 0 { -r } else { r }
+      let v = if i < generated_limit { ops[i] } else { i }
+      let op_type = Int::abs(v % 3)
+      if tree.span() <= 1 || op_type != 0 {
+        let pos = Int::abs(v % (tree.span() + 1))
         tree.insert_at(pos, mki(i))
       } else {
-        let r = v % tree.span()
-        let pos = if r < 0 { -r } else { r }
+        let pos = Int::abs(v % tree.span())
         ignore(tree.delete_at(pos))
       }
-      match check_invariants(tree) {
-        Some(_) => return false
-        None => ()
+      let valid_pos = Int::abs(v % tree.span())
+      let invalid_span = if i % 2 == 0 { 0 } else { -1 }
+      let before_content = tree
+        .to_array()
+        .map(item => (item.value, item.item_span))
+      let before_span = tree.span()
+      let before_size = tree.size()
+      let before_invariants = check_invariants(tree)
+      if before_invariants is Some(_) ||
+        tree.set_at(valid_pos, { value: invalid_span, item_span: invalid_span })
+        is Some(_) ||
+        tree.to_array().map(item => (item.value, item.item_span)) !=
+        before_content ||
+        tree.span() != before_span ||
+        tree.size() != before_size ||
+        check_invariants(tree) != before_invariants {
+        return false
       }
     }
     true
