@@ -39,10 +39,10 @@ tree.delete_range(1, 3)    // ["b", "d"]
 | `OrderTree::from_array(items, min_degree?)` | Bulk build from array | O(n) |
 | `get_at(pos)` / `tree[pos]` | Element at position | O(log n) |
 | `find(pos)` | Element + offset within element | O(log n) |
-| `insert_at(pos, elem)` | Insert element at position | O(log n) |
+| `insert_at(pos, elem)` | Insert element at position; non-positive spans are ignored | O(log n) |
 | `delete_at(pos)` | Delete element at position | O(log n) |
 | `delete_range(start, end)` | Delete span range [start, end) | O(log n) |
-| `set_at(pos, elem)` / `tree[pos] = elem` | Replace element | O(log n) |
+| `set_at(pos, elem)` / `tree[pos] = elem` | Replace element; non-positive spans are rejected without mutation | O(log n) |
 | `view(start?, end?)` / `tree[start:end]` | Slice elements in range | O(k + log n) |
 | `iter()` | Lazy iterator over all elements | O(n) total |
 | `span()` | Total span | O(1) |
@@ -69,6 +69,10 @@ Trait bounds scale with the operation:
 - **Positional mutation and slicing** (`insert_at`, `delete_at`, `delete_range`, `set_at` / `tree[pos] = item`, `view` / `tree[start:end]`): `@btree.BTreeElem`, the super trait `@rle.Spanning + @rle.Mergeable + @rle.Sliceable`.
 
 `view` needs `Sliceable` because it may split an element at a span boundary when materializing the slice — not because it mutates.
+
+Elements passed to `insert_at` with a span of zero or less are ignored. For
+`set_at`, the same invalid replacement returns `None` and leaves the tree
+unchanged; the index setter is likewise a no-op.
 
 Traits:
 - `@rle.Spanning` — how much span an element occupies
