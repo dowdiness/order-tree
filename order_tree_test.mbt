@@ -726,6 +726,68 @@ test "set_at on mergeable type triggers neighbor merge" {
 }
 
 ///|
+test "set_at rejects non-positive spans atomically at valid boundaries" {
+  let cases = [(0, 0), (0, 2), (0, 4), (-1, 0), (-1, 2), (-1, 4)]
+  for case in cases {
+    let (replacement_span, pos) = case
+    let tree = OrderTree::from_array(
+      [mi(0), mi(10), mi(20), mi(30), mi(40)],
+      min_degree=2,
+    )
+    @debug.debug_inspect(
+      tree.set_at(pos, mr(99, replacement_span)) is None,
+      content="true",
+    )
+    @debug.debug_inspect(
+      tree.to_array().map(item => item.start),
+      content="[0, 10, 20, 30, 40]",
+    )
+    @debug.debug_inspect(tree.span(), content="5")
+    @debug.debug_inspect(tree.size(), content="5")
+    @debug.debug_inspect(
+      Array::makei(5, logical_pos => {
+        tree.find(logical_pos).map(found => found.elem.start)
+      }),
+      content="[Some(0), Some(10), Some(20), Some(30), Some(40)]",
+    )
+    @debug.debug_inspect(
+      tree.view(start=0, end=5).map(item => item.start),
+      content="[0, 10, 20, 30, 40]",
+    )
+    @debug.debug_inspect(
+      tree.iter().map(item => item.start).collect(),
+      content="[0, 10, 20, 30, 40]",
+    )
+  }
+}
+
+///|
+test "index setter rejects non-positive spans atomically" {
+  for replacement_span in [0, -1] {
+    let tree = OrderTree::from_array([mi(0), mi(10), mi(20)], min_degree=2)
+    tree[1] = mr(99, replacement_span)
+    @debug.debug_inspect(
+      tree.to_array().map(item => item.start),
+      content="[0, 10, 20]",
+    )
+    @debug.debug_inspect(tree.span(), content="3")
+    @debug.debug_inspect(tree.size(), content="3")
+    @debug.debug_inspect(
+      tree.find(1).map(found => found.elem.start),
+      content="Some(10)",
+    )
+    @debug.debug_inspect(
+      tree.view(start=0, end=3).map(item => item.start),
+      content="[0, 10, 20]",
+    )
+    @debug.debug_inspect(
+      tree.iter().map(item => item.start).collect(),
+      content="[0, 10, 20]",
+    )
+  }
+}
+
+///|
 test "same-run delete_range with mergeable type" {
   let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 10)) // [0..10)

@@ -2,6 +2,7 @@
 /// Test helper type for invariant tests
 priv struct TI {
   value : Int
+  item_span : Int
 }
 
 ///|
@@ -10,8 +11,8 @@ impl @rle.HasLength for TI with fn length(_self) -> Int {
 }
 
 ///|
-impl @rle.Spanning for TI with fn span(_self) -> Int {
-  1
+impl @rle.Spanning for TI with fn span(self) -> Int {
+  self.item_span
 }
 
 ///|
@@ -41,7 +42,7 @@ impl @btree.BTreeElem for TI
 
 ///|
 fn mki(v : Int) -> TI {
-  { value: v }
+  { value: v, item_span: 1 }
 }
 
 ///|

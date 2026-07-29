@@ -1,6 +1,7 @@
 ///|
 /// Insert an element at the given position in the tree.
-/// Position is clamped to [0, span()]. Element must have span > 0.
+/// Position is clamped to [0, span()]. Elements with non-positive span are
+/// ignored without mutating the tree.
 pub fn[T : @btree.BTreeElem] OrderTree::insert_at(
   self : OrderTree[T],
   pos : Int,

@@ -51,13 +51,16 @@ pub fn[T] OrderTree::find(
 
 ///|
 /// Replace the element at the given span position.
-/// Returns the old single-unit slice, or None if out of bounds.
+/// Returns the old single-unit slice, or None if out of bounds or the
+/// replacement span is non-positive. Invalid replacements leave the tree
+/// unchanged.
 /// Implemented as delete_at + insert_at to ensure neighbor merging.
 pub fn[T : @btree.BTreeElem] OrderTree::set_at(
   self : OrderTree[T],
   pos : Int,
   elem : T,
 ) -> T? {
+  guard @rle.Spanning::span(elem) > 0 else { return None }
   guard pos >= 0 else { return None }
   let deleted = self.delete_at(pos)
   guard deleted is Some(_) else { return None }
@@ -66,7 +69,8 @@ pub fn[T : @btree.BTreeElem] OrderTree::set_at(
 }
 
 ///|
-/// Index setter: `tree[pos] = elem`. Discards the old value.
+/// Index setter: `tree[pos] = elem`. Discards the old value and does nothing
+/// when the replacement span is non-positive.
 pub fn[T : @btree.BTreeElem] OrderTree::op_set(
   self : OrderTree[T],
   pos : Int,

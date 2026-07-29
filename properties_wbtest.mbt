@@ -77,3 +77,42 @@ test "property: random operations maintain invariants" {
     true
   })
 }
+
+///|
+test "property: invalid set_at preserves non-empty tree state" {
+  @qc.quick_check_fn(fn(ops : Array[Int]) -> Bool {
+    let limit = if ops.length() > 200 { 200 } else { ops.length() }
+    let items = Array::makei(limit + 1, i => {
+      if i == 0 {
+        mki(0)
+      } else {
+        mki(ops[i - 1])
+      }
+    })
+    let tree = OrderTree::from_array(items, min_degree=2)
+    let seed = if ops.length() == 0 { 0 } else { ops[0] }
+    let remainder = seed % tree.span()
+    let pos = if remainder < 0 { -remainder } else { remainder }
+    let cases = [(0, pos), (-1, (pos + 1) % tree.span())]
+    for case in cases {
+      let (invalid_span, valid_pos) = case
+      let before_content = tree
+        .to_array()
+        .map(item => (item.value, item.item_span))
+      let before_span = tree.span()
+      let before_size = tree.size()
+      let before_invariants = check_invariants(tree)
+      if before_invariants is Some(_) ||
+        tree.set_at(valid_pos, { value: invalid_span, item_span: invalid_span })
+        is Some(_) ||
+        tree.to_array().map(item => (item.value, item.item_span)) !=
+        before_content ||
+        tree.span() != before_span ||
+        tree.size() != before_size ||
+        check_invariants(tree) != before_invariants {
+        return false
+      }
+    }
+    true
+  })
+}
