@@ -18,4 +18,6 @@ pub fn[T : @btree.BTreeElem] OrderTree::insert_at(
       compute_insert_splice(ctx, elem)
     })
   }
+  self.tree.normalize_boundary_at(clamped_pos)
+  self.tree.normalize_boundary_at(clamped_pos + elem_span)
 }

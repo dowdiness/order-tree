@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Update `dowdiness/btree` from 0.1.0 to 0.2.0.
+
+### Fixed
+
+- Normalize the logical boundaries affected by successful point mutations so
+  adjacent mergeable runs remain canonical across B-tree parent boundaries.
+
 ## 0.1.1 — 2026-06-23
 
 ### Added

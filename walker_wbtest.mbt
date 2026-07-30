@@ -50,6 +50,97 @@ impl @btree.BTreeElem for Run
 // === Tests for order-tree-specific behavior ===
 
 ///|
+test "insert_at normalizes a cross-parent right boundary" {
+  let tree = OrderTree::from_array(
+    [run("a", 1), run("b", 1), run("c", 1), run("d", 1), run("e", 1)],
+    min_degree=2,
+  )
+  tree.insert_at(2, run("c", 1))
+  @debug.debug_inspect(tree.size(), content="5")
+  @debug.debug_inspect(tree.span(), content="6")
+  @debug.debug_inspect(
+    tree.to_array().map(item => (item.ch, item.span)),
+    content=(
+      #|[("a", 1), ("b", 1), ("c", 2), ("d", 1), ("e", 1)]
+    ),
+  )
+}
+
+///|
+test "insert_at normalizes a cross-parent left boundary" {
+  let tree = OrderTree::from_array(
+    [run("a", 1), run("b", 1), run("c", 1), run("d", 1), run("e", 1)],
+    min_degree=2,
+  )
+  tree.insert_at(2, run("b", 1))
+  @debug.debug_inspect(tree.size(), content="5")
+  @debug.debug_inspect(
+    tree.to_array().map(item => (item.ch, item.span)),
+    content=(
+      #|[("a", 1), ("b", 2), ("c", 1), ("d", 1), ("e", 1)]
+    ),
+  )
+}
+
+///|
+test "insert_at preserves a stable cross-parent boundary" {
+  let tree = OrderTree::from_array(
+    [run("a", 1), run("b", 1), run("c", 1), run("d", 1), run("e", 1)],
+    min_degree=2,
+  )
+  tree.insert_at(2, run("x", 1))
+  @debug.debug_inspect(tree.size(), content="6")
+  @debug.debug_inspect(
+    tree.to_array().map(item => (item.ch, item.span)),
+    content=(
+      #|[("a", 1), ("b", 1), ("x", 1), ("c", 1), ("d", 1), ("e", 1)]
+    ),
+  )
+}
+
+///|
+test "delete_at normalizes a newly exposed cross-parent boundary" {
+  let tree = OrderTree::from_array(
+    [run("a", 1), run("b", 1), run("c", 1), run("b", 1), run("e", 1)],
+    min_degree=2,
+  )
+  let deleted = tree.delete_at(2)
+  @debug.debug_inspect(
+    deleted.map(item => (item.ch, item.span)),
+    content="Some((\"c\", 1))",
+  )
+  @debug.debug_inspect(tree.size(), content="3")
+  @debug.debug_inspect(tree.span(), content="4")
+  @debug.debug_inspect(
+    tree.to_array().map(item => (item.ch, item.span)),
+    content=(
+      #|[("a", 1), ("b", 2), ("e", 1)]
+    ),
+  )
+}
+
+///|
+test "set_at reuses cross-parent delete and insert normalization" {
+  let tree = OrderTree::from_array(
+    [run("a", 1), run("b", 1), run("c", 1), run("b", 1), run("e", 1)],
+    min_degree=2,
+  )
+  let replaced = tree.set_at(2, run("b", 1))
+  @debug.debug_inspect(
+    replaced.map(item => (item.ch, item.span)),
+    content="Some((\"c\", 1))",
+  )
+  @debug.debug_inspect(tree.size(), content="3")
+  @debug.debug_inspect(tree.span(), content="5")
+  @debug.debug_inspect(
+    tree.to_array().map(item => (item.ch, item.span)),
+    content=(
+      #|[("a", 1), ("b", 3), ("e", 1)]
+    ),
+  )
+}
+
+///|
 test "delete_at collapses root after propagated child removal" {
   let tree : OrderTree[Run] = OrderTree::new(min_degree=2)
   for i = 0; i < 5; i = i + 1 {
