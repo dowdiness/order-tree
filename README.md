@@ -1,6 +1,6 @@
 # order-tree
 
-Position-indexed sequence for [MoonBit](https://www.moonbitlang.com/) with O(log n) insert, delete, and lookup by index.
+Position-indexed sequence for [MoonBit](https://www.moonbitlang.com/) with O(log n) lookup by index and O(log n) point mutations when boundary merges are bounded.
 
 Built on [`dowdiness/btree`](https://mooncakes.io/docs/dowdiness/btree@0.2.0) (a counted B+ tree). OrderTree adds a high-level API for common sequence operations — insert at position, delete at position, bulk construction from arrays, and operator overloads.
 
