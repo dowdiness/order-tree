@@ -3,7 +3,7 @@ name = "dowdiness/order-tree"
 version = "0.1.1"
 
 import {
-  "dowdiness/btree@0.1.0",
+  "dowdiness/btree@0.2.0",
   "dowdiness/rle@0.2.3",
   "moonbitlang/quickcheck@0.14.0",
 }
