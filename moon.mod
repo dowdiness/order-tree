@@ -1,6 +1,6 @@
 name = "dowdiness/order-tree"
 
-version = "0.1.1"
+version = "0.1.2"
 
 import {
   "dowdiness/btree@0.2.0",
