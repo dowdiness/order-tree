@@ -47,7 +47,7 @@ fn ti(v : Int) -> TItem {
 
 ///|
 test "new creates empty tree" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   @debug.debug_inspect(tree.span(), content="0")
   @debug.debug_inspect(tree.size(), content="0")
   @debug.debug_inspect(tree.is_empty(), content="true")
@@ -55,19 +55,19 @@ test "new creates empty tree" {
 
 ///|
 test "get_at on empty tree returns None" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   @debug.debug_inspect(tree.get_at(0), content="None")
 }
 
 ///|
 test "find on empty tree returns None" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   @debug.debug_inspect(tree.find(0), content="None")
 }
 
 ///|
 test "insert_at into empty tree" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   tree.insert_at(0, ti(42))
   @debug.debug_inspect(tree.span(), content="1")
   @debug.debug_inspect(tree.size(), content="1")
@@ -79,7 +79,7 @@ test "insert_at into empty tree" {
 
 ///|
 test "insert_at at beginning" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   tree.insert_at(0, ti(1))
   tree.insert_at(0, ti(2))
   @debug.debug_inspect(tree.get_at(0).map(fn(t) { t.value }), content="Some(2)")
@@ -88,7 +88,7 @@ test "insert_at at beginning" {
 
 ///|
 test "insert_at at end" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -103,7 +103,7 @@ test "insert_at at end" {
 
 ///|
 test "insert_at in middle" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   // Insert 0,1,2,3,4
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
@@ -122,7 +122,7 @@ test "insert_at in middle" {
 
 ///|
 test "insert_at triggers leaf split" {
-  let tree : OrderTree[TItem] = OrderTree::new(min_degree=2)
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new(min_degree=2)
   // max items per leaf = 2*2-1 = 3. Insert 4 to trigger split.
   for i = 0; i < 4; i = i + 1 {
     tree.insert_at(i, ti(i * 10))
@@ -137,7 +137,7 @@ test "insert_at triggers leaf split" {
 
 ///|
 test "insert_at 100 sequential items" {
-  let tree : OrderTree[TItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new(min_degree=3)
   for i = 0; i < 100; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -155,7 +155,7 @@ test "insert_at 100 sequential items" {
 
 ///|
 test "insert_at beyond span appends" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   tree.insert_at(0, ti(1))
   tree.insert_at(100, ti(2)) // pos > span, should append
   @debug.debug_inspect(tree.span(), content="2")
@@ -164,7 +164,7 @@ test "insert_at beyond span appends" {
 
 ///|
 test "delete_at from single-item tree" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   tree.insert_at(0, ti(42))
   let deleted = tree.delete_at(0)
   @debug.debug_inspect(deleted.map(fn(t) { t.value }), content="Some(42)")
@@ -173,7 +173,7 @@ test "delete_at from single-item tree" {
 
 ///|
 test "delete_at from beginning" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -185,7 +185,7 @@ test "delete_at from beginning" {
 
 ///|
 test "delete_at from end" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -196,7 +196,7 @@ test "delete_at from end" {
 
 ///|
 test "delete_at from middle" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -208,7 +208,7 @@ test "delete_at from middle" {
 
 ///|
 test "delete_at triggers underflow and borrow/merge" {
-  let tree : OrderTree[TItem] = OrderTree::new(min_degree=2)
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new(min_degree=2)
   for i = 0; i < 7; i = i + 1 {
     tree.insert_at(i, ti(i * 10))
   }
@@ -229,7 +229,7 @@ test "delete_at triggers underflow and borrow/merge" {
 
 ///|
 test "delete_at out of bounds returns None" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   tree.insert_at(0, ti(1))
   @debug.debug_inspect(tree.delete_at(5), content="None")
   @debug.debug_inspect(tree.delete_at(-1), content="None")
@@ -238,7 +238,7 @@ test "delete_at out of bounds returns None" {
 
 ///|
 test "delete all items one by one" {
-  let tree : OrderTree[TItem] = OrderTree::new(min_degree=2)
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new(min_degree=2)
   for i = 0; i < 20; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -254,7 +254,7 @@ test "delete all items one by one" {
 
 ///|
 test "set_at replaces item" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -269,7 +269,7 @@ test "set_at replaces item" {
 
 ///|
 test "set_at out of bounds returns None and leaves tree unchanged" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   tree.insert_at(0, ti(1))
   let old_span = tree.span()
   let old_size = tree.size()
@@ -281,7 +281,7 @@ test "set_at out of bounds returns None and leaves tree unchanged" {
 
 ///|
 test "set_at negative pos returns None" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   tree.insert_at(0, ti(1))
   @debug.debug_inspect(tree.set_at(-1, ti(99)), content="None")
   @debug.debug_inspect(tree.span(), content="1")
@@ -289,7 +289,7 @@ test "set_at negative pos returns None" {
 
 ///|
 test "delete_range removes contiguous items" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 10; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -302,7 +302,7 @@ test "delete_range removes contiguous items" {
 
 ///|
 test "delete_range empty range does nothing" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -312,7 +312,7 @@ test "delete_range empty range does nothing" {
 
 ///|
 test "to_array returns items in order" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -325,7 +325,7 @@ test "to_array returns items in order" {
 
 ///|
 test "each visits all items" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -336,7 +336,7 @@ test "each visits all items" {
 
 ///|
 test "iter collects items" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -346,21 +346,21 @@ test "iter collects items" {
 
 ///|
 test "iter on empty tree" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   let result = tree.iter().collect()
   @debug.debug_inspect(result.length(), content="0")
 }
 
 ///|
 test "from_array empty" {
-  let tree : OrderTree[TItem] = OrderTree::from_array([])
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::from_array([])
   @debug.debug_inspect(tree.is_empty(), content="true")
   @debug.debug_inspect(tree.span(), content="0")
 }
 
 ///|
 test "from_array single item" {
-  let tree = OrderTree::from_array([ti(42)])
+  let tree = @order-tree.OrderTree::from_array([ti(42)])
   @debug.debug_inspect(tree.span(), content="1")
   @debug.debug_inspect(
     tree.get_at(0).map(fn(t) { t.value }),
@@ -371,7 +371,7 @@ test "from_array single item" {
 ///|
 test "from_array 10 items" {
   let items = Array::makei(10, fn(i) { ti(i) })
-  let tree = OrderTree::from_array(items)
+  let tree = @order-tree.OrderTree::from_array(items)
   @debug.debug_inspect(tree.span(), content="10")
   for i = 0; i < 10; i = i + 1 {
     @debug.debug_inspect(
@@ -384,7 +384,7 @@ test "from_array 10 items" {
 ///|
 test "from_array roundtrip" {
   let items = Array::makei(100, fn(i) { ti(i) })
-  let tree = OrderTree::from_array(items)
+  let tree = @order-tree.OrderTree::from_array(items)
   @debug.debug_inspect(tree.span(), content="100")
   @debug.debug_inspect(tree.size(), content="100")
   let arr = tree.to_array()
@@ -396,7 +396,7 @@ test "from_array roundtrip" {
 ///|
 test "from_array with small min_degree" {
   let items = Array::makei(20, fn(i) { ti(i) })
-  let tree = OrderTree::from_array(items, min_degree=2)
+  let tree = @order-tree.OrderTree::from_array(items, min_degree=2)
   @debug.debug_inspect(tree.span(), content="20")
   for i = 0; i < 20; i = i + 1 {
     @debug.debug_inspect(
@@ -410,7 +410,7 @@ test "from_array with small min_degree" {
 test "from_array degree boundaries preserve public queries" {
   for n in [4, 5, 17] {
     let items = Array::makei(n, i => ti(i))
-    let tree = OrderTree::from_array(items, min_degree=2)
+    let tree = @order-tree.OrderTree::from_array(items, min_degree=2)
     @debug.debug_inspect(tree.size() == n, content="true")
     @debug.debug_inspect(tree.span() == n, content="true")
     let roundtrip = tree.to_array()
@@ -432,7 +432,7 @@ test "from_array degree boundaries preserve public queries" {
 
 ///|
 test "from_array then delete works" {
-  let tree = OrderTree::from_array(
+  let tree = @order-tree.OrderTree::from_array(
     Array::makei(50, fn(i) { ti(i) }),
     min_degree=3,
   )
@@ -446,7 +446,7 @@ test "from_array then delete works" {
 
 ///|
 test "from_array then insert works" {
-  let tree = OrderTree::from_array(
+  let tree = @order-tree.OrderTree::from_array(
     Array::makei(50, fn(i) { ti(i) }),
     min_degree=3,
   )
@@ -460,7 +460,7 @@ test "from_array then insert works" {
 
 ///|
 test "rle trait: HasLength and Spanning" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   // Empty: length and span are 0
   @debug.debug_inspect(@rle.HasLength::length(tree), content="0")
   @debug.debug_inspect(@rle.Spanning::span(tree), content="0")
@@ -476,7 +476,7 @@ test "rle trait: HasLength and Spanning" {
 
 ///|
 test "index syntax: tree[pos] and tree[pos] = item" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -492,7 +492,7 @@ test "index syntax: tree[pos] and tree[pos] = item" {
 
 ///|
 test "view operator: tree[start:end]" {
-  let tree : OrderTree[TItem] = OrderTree::new()
+  let tree : @order-tree.OrderTree[TItem] = @order-tree.OrderTree::new()
   for i = 0; i < 10; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
@@ -579,7 +579,7 @@ fn mr(start : Int, count : Int) -> MItem {
 
 ///|
 test "merge on sequential insert" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mi(0))
   tree.insert_at(1, mi(1))
   tree.insert_at(2, mi(2))
@@ -589,7 +589,7 @@ test "merge on sequential insert" {
 
 ///|
 test "no merge on non-consecutive insert" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mi(0))
   tree.insert_at(1, mi(5)) // Not consecutive — no merge
   @debug.debug_inspect(tree.size(), content="2")
@@ -597,7 +597,7 @@ test "no merge on non-consecutive insert" {
 
 ///|
 test "merge on boundary insert" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 3)) // [0..3)
   tree.insert_at(3, mr(3, 2)) // [0..5) — merged
   @debug.debug_inspect(tree.size(), content="1")
@@ -610,7 +610,7 @@ test "merge on boundary insert" {
 
 ///|
 test "split on mid-run insert" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 5)) // [0..5)
   tree.insert_at(2, mi(100)) // Split [0..5) at 2 → [0..2), [100], [2..5)
   @debug.debug_inspect(tree.span(), content="6")
@@ -628,7 +628,7 @@ test "split on mid-run insert" {
 
 ///|
 test "delete from middle of run" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 5)) // [0..5)
   let deleted = tree.delete_at(2) // Delete unit at pos 2 → [0..2), [3..5)
   @debug.debug_inspect(deleted.unwrap().start, content="2")
@@ -637,7 +637,7 @@ test "delete from middle of run" {
 
 ///|
 test "delete first unit of run" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 3))
   let deleted = tree.delete_at(0)
   @debug.debug_inspect(deleted.unwrap().start, content="0")
@@ -647,7 +647,7 @@ test "delete first unit of run" {
 
 ///|
 test "delete last unit of run" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 3))
   let deleted = tree.delete_at(2)
   @debug.debug_inspect(deleted.unwrap().start, content="2")
@@ -662,7 +662,7 @@ test "delete last unit of run" {
 ///|
 test "from_array merges consecutive items" {
   let items = [mi(0), mi(1), mi(2), mi(5), mi(6)]
-  let tree = OrderTree::from_array(items, min_degree=3)
+  let tree = @order-tree.OrderTree::from_array(items, min_degree=3)
   @debug.debug_inspect(tree.size(), content="2") // [0..3) and [5..7)
   @debug.debug_inspect(tree.span(), content="5")
 }
@@ -670,7 +670,7 @@ test "from_array merges consecutive items" {
 ///|
 test "from_array filters non-positive spans" {
   let items = [mr(0, 0), mr(9, -1), mi(1), mr(2, 0), mi(2)]
-  let tree = OrderTree::from_array(items, min_degree=3)
+  let tree = @order-tree.OrderTree::from_array(items, min_degree=3)
   @debug.debug_inspect(tree.size(), content="1") // [1..3) after filter + merge
   @debug.debug_inspect(tree.span(), content="2")
 }
@@ -681,7 +681,7 @@ test "from_array filters non-positive spans" {
 
 ///|
 test "view slices at boundaries" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 10))
   let v = tree.view(start=3, end=7)
   @debug.debug_inspect(v.length(), content="1")
@@ -691,7 +691,7 @@ test "view slices at boundaries" {
 
 ///|
 test "view spans multiple leaves with boundary slices" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 3))
   tree.insert_at(3, mr(10, 2))
   tree.insert_at(5, mr(20, 3))
@@ -707,7 +707,7 @@ test "view spans multiple leaves with boundary slices" {
 
 ///|
 test "set_at on mergeable type triggers neighbor merge" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   // Build: [0..2) and [5] — two leaves
   tree.insert_at(0, mi(0)) // [0]
   tree.insert_at(1, mi(5)) // [0] [5]
@@ -730,7 +730,7 @@ test "set_at rejects non-positive spans atomically at valid boundaries" {
   let cases = [(0, 0), (0, 2), (0, 4), (-1, 0), (-1, 2), (-1, 4)]
   for case in cases {
     let (replacement_span, pos) = case
-    let tree = OrderTree::from_array(
+    let tree = @order-tree.OrderTree::from_array(
       [mi(0), mi(10), mi(20), mi(30), mi(40)],
       min_degree=2,
     )
@@ -764,7 +764,7 @@ test "set_at rejects non-positive spans atomically at valid boundaries" {
 ///|
 test "index setter rejects non-positive spans atomically" {
   for replacement_span in [0, -1] {
-    let tree = OrderTree::from_array([mi(0), mi(10), mi(20)], min_degree=2)
+    let tree = @order-tree.OrderTree::from_array([mi(0), mi(10), mi(20)], min_degree=2)
     tree[1] = mr(99, replacement_span)
     @debug.debug_inspect(
       tree.to_array().map(item => item.start),
@@ -789,7 +789,7 @@ test "index setter rejects non-positive spans atomically" {
 
 ///|
 test "same-run delete_range with mergeable type" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 10)) // [0..10)
   tree.delete_range(3, 7) // Delete positions 3-6 → [0..3) and [7..10)
   @debug.debug_inspect(@rle.Spanning::span(tree), content="6")
@@ -805,7 +805,7 @@ test "same-run delete_range with mergeable type" {
 
 ///|
 test "delete_range across multiple leaves rebuilds kept slices" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 3))
   tree.insert_at(3, mr(10, 2))
   tree.insert_at(5, mr(20, 3))
@@ -822,7 +822,7 @@ test "delete_range across multiple leaves rebuilds kept slices" {
 
 ///|
 test "delete_range full span clears tree" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 3))
   tree.insert_at(3, mr(10, 2))
   tree.delete_range(0, tree.span())
@@ -833,7 +833,7 @@ test "delete_range full span clears tree" {
 
 ///|
 test "delete_range ignores negative start" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 5))
   tree.delete_range(-2, 3)
   @debug.debug_inspect(tree.span(), content="5")
@@ -845,7 +845,7 @@ test "delete_range ignores negative start" {
 
 ///|
 test "delete_range clamps end to span" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 3))
   tree.insert_at(3, mr(10, 2))
   tree.delete_range(2, 99)
@@ -858,7 +858,7 @@ test "delete_range clamps end to span" {
 
 ///|
 test "delete_range merges kept ranges across removed gap" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   tree.insert_at(0, mr(0, 3))
   tree.insert_at(3, mr(100, 2))
   tree.insert_at(5, mr(3, 2))
@@ -876,7 +876,7 @@ test "delete_range merges kept ranges across removed gap" {
 
 ///|
 test "round-trip: insert many then to_array" {
-  let tree : OrderTree[MItem] = OrderTree::new(min_degree=3)
+  let tree : @order-tree.OrderTree[MItem] = @order-tree.OrderTree::new(min_degree=3)
   for i = 0; i < 100; i = i + 1 {
     tree.insert_at(i, mi(i))
   }

@@ -281,7 +281,7 @@ test "bench: insert_at sequential mergeable (10000)" (b : @bench.T) {
 
 ///|
 test "bench: from_array mergeable (10000)" (b : @bench.T) {
-  let items : Array[BMItem] = Array::new(capacity=10000)
+  let items : Array[BMItem] = Array(capacity=10000)
   for i = 0; i < 10000; i = i + 1 {
     items.push(bmi(i))
   }

@@ -5,3 +5,9 @@
 pub struct OrderTree[T] {
   tree : @btree.BTree[T]
 } derive(Debug, Eq)
+
+///|
+pub extend OrderTree with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend OrderTree with Eq::{equal, not_equal}
