@@ -8,7 +8,7 @@ priv struct Run {
 
 ///|
 fn run(ch : String, span : Int) -> Run {
-  { ch, span }
+  { ch, span, }
 }
 
 ///|
@@ -28,7 +28,7 @@ impl @rle.Mergeable for Run with fn can_merge(self : Run, other : Run) -> Bool {
 
 ///|
 impl @rle.Mergeable for Run with fn merge(self : Run, other : Run) -> Run {
-  { ch: self.ch, span: self.span + other.span }
+  { ch: self.ch, span: self.span + other.span, }
 }
 
 ///|
@@ -41,7 +41,7 @@ impl @rle.Sliceable for Run with fn slice(self : Run, start~ : Int, end~ : Int) 
       @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex),
     )
   }
-  Ok({ ch: self.ch, span: end - start })
+  Ok({ ch: self.ch, span: end - start, })
 }
 
 ///|

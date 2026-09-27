@@ -42,7 +42,7 @@ impl @btree.BTreeElem for TI
 
 ///|
 fn mki(v : Int) -> TI {
-  { value: v, item_span: 1 }
+  { value: v, item_span: 1, }
 }
 
 ///|

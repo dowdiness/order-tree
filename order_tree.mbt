@@ -1,6 +1,6 @@
 ///|
 pub fn[T] OrderTree::new(min_degree? : Int) -> OrderTree[T] {
-  { tree: @btree.BTree::new(min_degree?) }
+  { tree: @btree.BTree::new(min_degree?), }
 }
 
 ///|

@@ -33,5 +33,5 @@ pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
     return OrderTree::new(min_degree=t)
   }
   let pairs = merged.map(elem => (elem, @rle.Spanning::span(elem)))
-  { tree: @btree.BTree::from_sorted(pairs, min_degree=t) }
+  { tree: @btree.BTree::from_sorted(pairs, min_degree=t), }
 }
