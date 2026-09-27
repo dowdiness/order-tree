@@ -105,5 +105,5 @@ fn[T : @btree.BTreeElem] compute_insert_splice(
     new_leaves.push((current, current_span))
     new_leaves.push((right_part, right_span))
   }
-  { start_idx: ctx.child_idx, end_idx: ctx.child_idx + 1, new_leaves }
+  { start_idx: ctx.child_idx, end_idx: ctx.child_idx + 1, new_leaves, }
 }

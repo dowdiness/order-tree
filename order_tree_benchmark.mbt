@@ -40,7 +40,7 @@ impl @btree.BTreeElem for BItem
 
 ///|
 fn bi(v : Int) -> BItem {
-  { value: v }
+  { value: v, }
 }
 
 ///|
@@ -245,7 +245,7 @@ impl @rle.Mergeable for BMItem with fn can_merge(self, other) -> Bool {
 
 ///|
 impl @rle.Mergeable for BMItem with fn merge(self, other) -> BMItem {
-  { start: self.start, count: self.count + other.count }
+  { start: self.start, count: self.count + other.count, }
 }
 
 ///|
@@ -256,7 +256,7 @@ impl @rle.Sliceable for BMItem with fn slice(self, start~ : Int, end~ : Int) -> 
   if start < 0 || end > self.count || start >= end {
     Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
   } else {
-    Ok({ start: self.start + start, count: end - start })
+    Ok({ start: self.start + start, count: end - start, })
   }
 }
 
@@ -265,7 +265,7 @@ impl @btree.BTreeElem for BMItem
 
 ///|
 fn bmi(v : Int) -> BMItem {
-  { start: v, count: 1 }
+  { start: v, count: 1, }
 }
 
 ///|
@@ -281,7 +281,7 @@ test "bench: insert_at sequential mergeable (10000)" (b : @bench.T) {
 
 ///|
 test "bench: from_array mergeable (10000)" (b : @bench.T) {
-  let items : Array[BMItem] = Array::new(capacity=10000)
+  let items : Array[BMItem] = Array(capacity=10000)
   for i = 0; i < 10000; i = i + 1 {
     items.push(bmi(i))
   }

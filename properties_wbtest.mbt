@@ -79,7 +79,7 @@ test "property: random operations including invalid set_at maintain invariants" 
       let before_size = tree.size()
       let before_invariants = check_invariants(tree)
       if before_invariants is Some(_) ||
-        tree.set_at(valid_pos, { value: invalid_span, item_span: invalid_span })
+        tree.set_at(valid_pos, { value: invalid_span, item_span: invalid_span, })
         is Some(_) ||
         tree.to_array().map(item => (item.value, item.item_span)) !=
         before_content ||
@@ -118,7 +118,7 @@ test "property: invalid set_at preserves non-empty tree state" {
       let before_size = tree.size()
       let before_invariants = check_invariants(tree)
       if before_invariants is Some(_) ||
-        tree.set_at(valid_pos, { value: invalid_span, item_span: invalid_span })
+        tree.set_at(valid_pos, { value: invalid_span, item_span: invalid_span, })
         is Some(_) ||
         tree.to_array().map(item => (item.value, item.item_span)) !=
         before_content ||

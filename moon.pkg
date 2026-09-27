@@ -2,11 +2,11 @@ import {
   "dowdiness/btree",
   "dowdiness/rle",
   "moonbitlang/core/bench",
+  "moonbitlang/core/debug",
 }
 
 import {
   "moonbitlang/core/debug",
-  "moonbitlang/core/quickcheck",
 } for "test"
 
 import {

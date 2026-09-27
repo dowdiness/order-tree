@@ -1,6 +1,6 @@
 ///|
 pub fn[T] OrderTree::new(min_degree? : Int) -> OrderTree[T] {
-  { tree: @btree.BTree::new(min_degree?) }
+  { tree: @btree.BTree::new(min_degree?), }
 }
 
 ///|
@@ -71,7 +71,8 @@ pub fn[T : @btree.BTreeElem] OrderTree::set_at(
 ///|
 /// Index setter: `tree[pos] = elem`. Discards the old value and does nothing
 /// when the replacement span is non-positive.
-pub fn[T : @btree.BTreeElem] OrderTree::op_set(
+#alias("_[_]=_")
+pub fn[T : @btree.BTreeElem] OrderTree::set_index(
   self : OrderTree[T],
   pos : Int,
   elem : T,
@@ -103,3 +104,9 @@ pub fn[T : @btree.BTreeElem] OrderTree::delete_range(
 ) -> Unit {
   self.tree.delete_range(start, end_)
 }
+
+///|
+pub extend OrderTree with @dowdiness/rle.HasLength::{is_empty, length}
+
+///|
+pub extend OrderTree with @dowdiness/rle.Spanning::{logical_length, span}
