@@ -1,17 +1,17 @@
 ///|
 /// Test helper type for invariant tests
 priv struct TI {
-  value : Int
-  item_span : Int
+  value : Int32
+  item_span : Int32
 }
 
 ///|
-impl @rle.HasLength for TI with fn length(_self) -> Int {
+impl @rle.HasLength for TI with fn length(_self) -> Int32 {
   1
 }
 
 ///|
-impl @rle.Spanning for TI with fn span(self) -> Int {
+impl @rle.Spanning for TI with fn span(self) -> Int32 {
   self.item_span
 }
 
@@ -26,7 +26,7 @@ impl @rle.Mergeable for TI with fn merge(_self, _other) -> TI {
 }
 
 ///|
-impl @rle.Sliceable for TI with fn slice(self, start~ : Int, end~ : Int) -> Result[
+impl @rle.Sliceable for TI with fn slice(self, start~ : Int32, end~ : Int32) -> Result[
   TI,
   @rle.RleError,
 ] {
@@ -41,7 +41,7 @@ impl @rle.Sliceable for TI with fn slice(self, start~ : Int, end~ : Int) -> Resu
 impl @btree.BTreeElem for TI
 
 ///|
-fn mki(v : Int) -> TI {
+fn mki(v : Int32) -> TI {
   { value: v, item_span: 1, }
 }
 
@@ -86,7 +86,7 @@ fn[T : @btree.BTreeElem] check_invariants(tree : OrderTree[T]) -> String? {
 
 ///|
 test "invariants hold after sequential inserts" {
-  @qc.quick_check_fn(fn(count : Int) -> Bool {
+  @qc.quick_check_fn(fn(count : Int32) -> Bool {
     let r = count % 50
     let count = if r < 0 { -r } else { r }
     let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
@@ -103,7 +103,7 @@ test "invariants hold after sequential inserts" {
 
 ///|
 test "invariants hold after sequential deletes" {
-  @qc.quick_check_fn(fn(count : Int) -> Bool {
+  @qc.quick_check_fn(fn(count : Int32) -> Bool {
     let r = count % 50
     let count = if r < 0 { -r } else { r }
     let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
@@ -123,7 +123,7 @@ test "invariants hold after sequential deletes" {
 
 ///|
 test "invariants hold after from_array" {
-  @qc.quick_check_fn(fn(n : Int) -> Bool {
+  @qc.quick_check_fn(fn(n : Int32) -> Bool {
     let r = n % 50
     let n = if r < 0 { -r } else { r }
     let tree = OrderTree::from_array(

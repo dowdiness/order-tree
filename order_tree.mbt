@@ -1,11 +1,11 @@
 ///|
-pub fn[T] OrderTree::new(min_degree? : Int) -> OrderTree[T] {
+pub fn[T] OrderTree::new(min_degree? : Int32) -> OrderTree[T] {
   { tree: @btree.BTree::new(min_degree?), }
 }
 
 ///|
 /// Total leaf entries (number of runs).
-pub fn[T] OrderTree::size(self : OrderTree[T]) -> Int {
+pub fn[T] OrderTree::size(self : OrderTree[T]) -> Int32 {
   self.tree.size()
 }
 
@@ -18,33 +18,33 @@ pub impl[T] @rle.HasLength for OrderTree[T] with fn is_empty(
 
 ///|
 /// HasLength: number of leaf entries (same as size).
-pub impl[T] @rle.HasLength for OrderTree[T] with fn length(self) -> Int {
+pub impl[T] @rle.HasLength for OrderTree[T] with fn length(self) -> Int32 {
   self.tree.size()
 }
 
 ///|
 /// Spanning: total span across all elements. O(1) via cached root total.
-pub impl[T] @rle.Spanning for OrderTree[T] with fn span(self) -> Int {
+pub impl[T] @rle.Spanning for OrderTree[T] with fn span(self) -> Int32 {
   self.tree.span()
 }
 
 ///|
 /// Spanning: logical_length defaults to span for now.
-pub impl[T] @rle.Spanning for OrderTree[T] with fn logical_length(self) -> Int {
+pub impl[T] @rle.Spanning for OrderTree[T] with fn logical_length(self) -> Int32 {
   self.tree.span()
 }
 
 ///|
 /// Get the element at span position. Aliased as `tree[pos]`.
 #alias("_[_]")
-pub fn[T] OrderTree::get_at(self : OrderTree[T], pos : Int) -> T? {
+pub fn[T] OrderTree::get_at(self : OrderTree[T], pos : Int32) -> T? {
   self.tree.get_at(pos)
 }
 
 ///|
 pub fn[T] OrderTree::find(
   self : OrderTree[T],
-  pos : Int,
+  pos : Int32,
 ) -> @btree.FindResult[T]? {
   self.tree.find(pos)
 }
@@ -57,7 +57,7 @@ pub fn[T] OrderTree::find(
 /// Implemented as delete_at + insert_at to ensure neighbor merging.
 pub fn[T : @btree.BTreeElem] OrderTree::set_at(
   self : OrderTree[T],
-  pos : Int,
+  pos : Int32,
   elem : T,
 ) -> T? {
   guard @rle.Spanning::span(elem) > 0 else { return None }
@@ -74,7 +74,7 @@ pub fn[T : @btree.BTreeElem] OrderTree::set_at(
 #alias("_[_]=_")
 pub fn[T : @btree.BTreeElem] OrderTree::set_index(
   self : OrderTree[T],
-  pos : Int,
+  pos : Int32,
   elem : T,
 ) -> Unit {
   ignore(self.set_at(pos, elem))
@@ -86,8 +86,8 @@ pub fn[T : @btree.BTreeElem] OrderTree::set_index(
 #alias("_[_:_]")
 pub fn[T : @btree.BTreeElem] OrderTree::view(
   self : OrderTree[T],
-  start? : Int = 0,
-  end? : Int,
+  start~ : Int32 = 0,
+  end? : Int32,
 ) -> Array[T] {
   match end {
     Some(e) => self.tree.view(start~, end=e)
@@ -99,8 +99,8 @@ pub fn[T : @btree.BTreeElem] OrderTree::view(
 /// Delete all elements in the span range [start, end_).
 pub fn[T : @btree.BTreeElem] OrderTree::delete_range(
   self : OrderTree[T],
-  start : Int,
-  end_ : Int,
+  start : Int32,
+  end_ : Int32,
 ) -> Unit {
   self.tree.delete_range(start, end_)
 }

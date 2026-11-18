@@ -4,7 +4,7 @@
 /// ignored without mutating the tree.
 pub fn[T : @btree.BTreeElem] OrderTree::insert_at(
   self : OrderTree[T],
-  pos : Int,
+  pos : Int32,
   elem : T,
 ) -> Unit {
   let elem_span = @rle.Spanning::span(elem)

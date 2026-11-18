@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: hustcer/setup-moonbit@b1bd6fd0f17bd04c2bc9e4a9c5715f3262339167 # v1.25
+        with:
+          version: 0.10.21+06da1ed44
+          core-version: 0.10.21+06da1ed44
+      - name: Check, build, test and compile every benchmark
+        run: |
+          moon version --all
+          moon update
+          moon check --target all --fmt
+          moon info --frozen
+          git diff --exit-code -- moon.mod pkg.generated.mbti
+          moon build --target all --frozen
+          moon build --target all --release --frozen
+          moon test --target all --frozen
+          moon test --target all --release --frozen
+          moon bench --target all --release --build-only --frozen
+          moon doc --frozen
+      - name: Validate distribution archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          moon package --list --frozen --target-dir "$RUNNER_TEMP/package"
+          mkdir "$RUNNER_TEMP/extracted"
+          unzip -q "$RUNNER_TEMP"/package/publish/*.zip -d "$RUNNER_TEMP/extracted"
+          cd "$RUNNER_TEMP/extracted"
+          moon check --target all
+          moon build --target all --release --frozen
+          moon doc --frozen

@@ -6,6 +6,10 @@ Built on [`dowdiness/btree`](https://mooncakes.io/docs/dowdiness/btree@0.2.0) (a
 
 ## Install
 
+Version 0.2.0 targets MoonBit compiler/core `0.10.21+06da1ed44`.
+Use published rle 0.3.0 and QuickCheck 0.15.0; no local overrides are needed.
+See [CHANGELOG.md](CHANGELOG.md) for the compiler and dependency migration.
+
 ```bash
 moon add dowdiness/order-tree
 ```
@@ -83,7 +87,7 @@ Traits:
 - `@rle.Mergeable` — when adjacent elements can merge (RLE compression)
 - `@rle.Sliceable` — how to split an element at a position
 
-See [`dowdiness/rle`](https://mooncakes.io/docs/dowdiness/rle@0.2.3) for trait details.
+See [`dowdiness/rle`](https://mooncakes.io/docs/dowdiness/rle@0.3.0) for trait details.
 
 ## Defining Your Element Type
 
@@ -97,9 +101,10 @@ moon add dowdiness/btree
 
 ```moonbit
 // Each E occupies span 1 and never merges with its neighbour.
+#derive(Eq)
 pub struct E {
-  v : Int
-} derive(Eq)
+  v : Int32
+}
 
 pub impl @rle.HasLength for E with length(_self) { 1 }
 
@@ -142,3 +147,25 @@ dowdiness/order-tree   High-level sequence API (this library)
 The underlying B+ tree uses **span counts** instead of keys for navigation. Each internal node stores a `counts` array where `counts[i]` is the total span of child `i`. This gives O(log n) positional access without key comparison — ideal for sequence editors where position is the natural index.
 
 Adjacent elements with the same identity merge automatically (RLE compression). This keeps the tree compact when consecutive elements share properties (e.g., same author, same formatting).
+
+## Verification
+
+CI pins compiler and core to `0.10.21+06da1ed44`. Run:
+
+```bash
+moon update
+moon check --target all --fmt
+moon info --frozen
+moon build --target all --frozen
+moon build --target all --release --frozen
+moon test --target all --frozen
+moon test --target all --release --frozen
+moon bench --target all --release --build-only --frozen
+moon doc --frozen
+moon package --list --frozen
+```
+
+CI also extracts the distribution ZIP and checks, builds, and generates docs
+from it. Compiler migration warnings for rle's required `Result`-returning
+`Sliceable` contract remain visible. `--deny-warn` fails on these warnings;
+they are not suppressed or represented as a clean strict check.

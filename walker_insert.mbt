@@ -10,7 +10,7 @@ fn[T : @btree.BTreeElem] compute_insert_splice(
         if @rle.Mergeable::can_merge(left_elem, elem) {
           let merged_left = @rle.Mergeable::merge(left_elem, elem)
           let merged_left_span = @rle.Spanning::span(merged_left)
-          let new_leaves : Array[(T, Int)] = [(merged_left, merged_left_span)]
+          let new_leaves : Array[(T, Int32)] = [(merged_left, merged_left_span)]
           if @rle.Mergeable::can_merge(merged_left, ctx.elem) {
             let merged = @rle.Mergeable::merge(merged_left, ctx.elem)
             return {
@@ -86,7 +86,7 @@ fn[T : @btree.BTreeElem] compute_insert_splice(
   let left_part = must_slice(ctx.elem, start=0, end=ctx.offset)
   let right_part = must_slice(ctx.elem, start=ctx.offset, end=ctx.span)
   let right_span = @rle.Spanning::span(right_part)
-  let new_leaves : Array[(T, Int)] = []
+  let new_leaves : Array[(T, Int32)] = []
   let mut current = left_part
   let mut current_span = @rle.Spanning::span(current)
   if @rle.Mergeable::can_merge(current, elem) {

@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.2.0 — 2026-11-18
+
+### Changed
+
+- Target MoonBit compiler/core `0.10.21+06da1ed44` (latest stable distribution
+  when prepared); migrate formatter-generated syntax and generated interfaces.
+  Older compilers are not supported by this release.
+- Update published dependencies to `dowdiness/rle@0.3.0` and
+  `moonbitlang/quickcheck@0.15.0`, retaining `dowdiness/btree@0.2.0`.
+- Add CI for all four backends, debug/release tests, benchmark compilation,
+  documentation generation, and extracted-package verification.
+
+### Fixed
+
+- Qualify all 16 benchmark calls to `@rle.Spanning::span(tree)` so they no
+  longer depend on implicit trait-method lookup during documentation builds.
+
+### Migration
+
+- `Int32` replaces the alias `Int` in generated signatures; numeric widths
+  and operation semantics are unchanged. Public method names and bounds remain
+  unchanged from main. Earlier unreleased main changes already promote
+  existing query traits, equality/debug methods, and the index setter.
+- Since published 0.1.2, the named index setter `op_set` has become
+  `set_index`. Replace `tree.op_set(pos, value)` with
+  `tree.set_index(pos, value)` or `tree[pos] = value`.
+- Use `@rle.Spanning::span(tree)` for explicit trait dispatch. Applications
+  implementing rle traits must use the published rle 0.3.0 contract.
+- `Sliceable::slice` intentionally retains rle's `Result` contract. New
+  `result_error_return` migration warnings remain visible; warning-denied
+  checks are not claimed successful. No warning suppression was added.
+
 ## 0.1.2 — 2026-08-02
 
 ### Changed
