@@ -1,23 +1,24 @@
 ///|
+#derive(Debug)
 priv struct Run {
   ch : String
-  span : Int
-} derive(Debug)
+  span : Int32
+}
 
 ///|
 
 ///|
-fn run(ch : String, span : Int) -> Run {
+fn run(ch : String, span : Int32) -> Run {
   { ch, span, }
 }
 
 ///|
-impl @rle.HasLength for Run with fn length(self : Run) -> Int {
+impl @rle.HasLength for Run with fn length(self : Run) -> Int32 {
   self.span
 }
 
 ///|
-impl @rle.Spanning for Run with fn span(self : Run) -> Int {
+impl @rle.Spanning for Run with fn span(self : Run) -> Int32 {
   self.span
 }
 
@@ -32,10 +33,11 @@ impl @rle.Mergeable for Run with fn merge(self : Run, other : Run) -> Run {
 }
 
 ///|
-impl @rle.Sliceable for Run with fn slice(self : Run, start~ : Int, end~ : Int) -> Result[
-  Run,
-  @rle.RleError,
-] {
+impl @rle.Sliceable for Run with fn slice(
+  self : Run,
+  start~ : Int32,
+  end~ : Int32,
+) -> Result[Run, @rle.RleError] {
   if start < 0 || end < start || end > self.span {
     return Err(
       @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex),

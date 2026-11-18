@@ -1,17 +1,18 @@
 ///|
+#derive(Debug)
 priv struct TItem {
-  value : Int
-} derive(Debug)
+  value : Int32
+}
 
 ///|
 
 ///|
-impl @rle.HasLength for TItem with fn length(_self) -> Int {
+impl @rle.HasLength for TItem with fn length(_self) -> Int32 {
   1
 }
 
 ///|
-impl @rle.Spanning for TItem with fn span(_self) -> Int {
+impl @rle.Spanning for TItem with fn span(_self) -> Int32 {
   1
 }
 
@@ -26,7 +27,7 @@ impl @rle.Mergeable for TItem with fn merge(_self, _other) -> TItem {
 }
 
 ///|
-impl @rle.Sliceable for TItem with fn slice(self, start~ : Int, end~ : Int) -> Result[
+impl @rle.Sliceable for TItem with fn slice(self, start~ : Int32, end~ : Int32) -> Result[
   TItem,
   @rle.RleError,
 ] {
@@ -41,7 +42,7 @@ impl @rle.Sliceable for TItem with fn slice(self, start~ : Int, end~ : Int) -> R
 impl @btree.BTreeElem for TItem
 
 ///|
-fn ti(v : Int) -> TItem {
+fn ti(v : Int32) -> TItem {
   { value: v, }
 }
 
@@ -337,7 +338,7 @@ test "each visits all items" {
   for i = 0; i < 5; i = i + 1 {
     tree.insert_at(i, ti(i))
   }
-  let result : Array[Int] = []
+  let result : Array[Int32] = []
   tree.each(fn(item) { result.push(item.value) })
   @debug.debug_inspect(result, content="[0, 1, 2, 3, 4]")
 }
@@ -532,17 +533,17 @@ test "view operator: tree[start:end]" {
 ///|
 /// A test type that merges when values are consecutive.
 priv struct MItem {
-  start : Int
-  count : Int
+  start : Int32
+  count : Int32
 }
 
 ///|
-impl @rle.HasLength for MItem with fn length(self) -> Int {
+impl @rle.HasLength for MItem with fn length(self) -> Int32 {
   self.count
 }
 
 ///|
-impl @rle.Spanning for MItem with fn span(self) -> Int {
+impl @rle.Spanning for MItem with fn span(self) -> Int32 {
   self.count
 }
 
@@ -557,7 +558,7 @@ impl @rle.Mergeable for MItem with fn merge(self, other) -> MItem {
 }
 
 ///|
-impl @rle.Sliceable for MItem with fn slice(self, start~ : Int, end~ : Int) -> Result[
+impl @rle.Sliceable for MItem with fn slice(self, start~ : Int32, end~ : Int32) -> Result[
   MItem,
   @rle.RleError,
 ] {
@@ -572,12 +573,12 @@ impl @rle.Sliceable for MItem with fn slice(self, start~ : Int, end~ : Int) -> R
 impl @btree.BTreeElem for MItem
 
 ///|
-fn mi(start : Int) -> MItem {
+fn mi(start : Int32) -> MItem {
   { start, count: 1, }
 }
 
 ///|
-fn mr(start : Int, count : Int) -> MItem {
+fn mr(start : Int32, count : Int32) -> MItem {
   { start, count, }
 }
 

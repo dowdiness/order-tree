@@ -1,11 +1,11 @@
 name = "dowdiness/order-tree"
 
-version = "0.1.2"
+version = "0.2.0"
 
 import {
   "dowdiness/btree@0.2.0",
-  "dowdiness/rle@0.2.3",
-  "moonbitlang/quickcheck@0.14.0",
+  "dowdiness/rle@0.3.0",
+  "moonbitlang/quickcheck@0.15.0",
 }
 
 readme = "README.md"

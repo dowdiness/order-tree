@@ -1,6 +1,6 @@
 ///|
 test "property: insert then get roundtrip" {
-  @qc.quick_check_fn(fn(size : Int) -> Bool {
+  @qc.quick_check_fn(fn(size : Int32) -> Bool {
     let r = size % 50
     let size = if r < 0 { -r } else { r }
     let tree : OrderTree[TI] = OrderTree::new(min_degree=2)
@@ -33,7 +33,7 @@ test "property: delete reduces span" {
 
 ///|
 test "property: from_array then to_array roundtrip" {
-  @qc.quick_check_fn(fn(size : Int) -> Bool {
+  @qc.quick_check_fn(fn(size : Int32) -> Bool {
     let r = size % 100
     let size = if r < 0 { -r } else { r }
     let items = Array::makei(size, fn(i) { mki(i) })
@@ -53,7 +53,7 @@ test "property: from_array then to_array roundtrip" {
 
 ///|
 test "property: random operations including invalid set_at maintain invariants" {
-  @qc.quick_check_fn(fn(ops : Array[Int]) -> Bool {
+  @qc.quick_check_fn(fn(ops : Array[Int32]) -> Bool {
     let tree = OrderTree::from_array([mki(0)], min_degree=2)
     let generated_limit = if ops.length() > 200 { 200 } else { ops.length() }
     // Two synthetic operations make both invalid spans run even for an empty
@@ -62,15 +62,15 @@ test "property: random operations including invalid set_at maintain invariants" 
     let limit = generated_limit + 2
     for i = 0; i < limit; i = i + 1 {
       let v = if i < generated_limit { ops[i] } else { i }
-      let op_type = Int::abs(v % 3)
+      let op_type = Int32::abs(v % 3)
       if tree.span() <= 1 || op_type != 0 {
-        let pos = Int::abs(v % (tree.span() + 1))
+        let pos = Int32::abs(v % (tree.span() + 1))
         tree.insert_at(pos, mki(i))
       } else {
-        let pos = Int::abs(v % tree.span())
+        let pos = Int32::abs(v % tree.span())
         ignore(tree.delete_at(pos))
       }
-      let valid_pos = Int::abs(v % tree.span())
+      let valid_pos = Int32::abs(v % tree.span())
       let invalid_span = if i % 2 == 0 { 0 } else { -1 }
       let before_content = tree
         .to_array()
@@ -95,7 +95,7 @@ test "property: random operations including invalid set_at maintain invariants" 
 
 ///|
 test "property: invalid set_at preserves non-empty tree state" {
-  @qc.quick_check_fn(fn(ops : Array[Int]) -> Bool {
+  @qc.quick_check_fn(fn(ops : Array[Int32]) -> Bool {
     let limit = if ops.length() > 200 { 200 } else { ops.length() }
     let items = Array::makei(limit + 1, i => {
       if i == 0 {
@@ -133,7 +133,7 @@ test "property: invalid set_at preserves non-empty tree state" {
 }
 
 ///|
-fn bounded(seed : Int, bound : Int) -> Int {
+fn bounded(seed : Int32, bound : Int32) -> Int32 {
   let remainder = seed % bound
   if remainder < 0 {
     remainder + bound
@@ -150,9 +150,9 @@ fn flatten_runs(items : Array[Run]) -> Array[String] {
 ///|
 fn insert_model_span(
   model : Array[String],
-  pos : Int,
+  pos : Int32,
   value : String,
-  span : Int,
+  span : Int32,
 ) -> Unit {
   Array::makei(span, _ => value).eachi((offset, item) => {
     model.insert(pos + offset, item)
@@ -160,7 +160,7 @@ fn insert_model_span(
 }
 
 ///|
-fn build_run_tree(model : Array[String], degree_case : Int) -> OrderTree[Run] {
+fn build_run_tree(model : Array[String], degree_case : Int32) -> OrderTree[Run] {
   let items = model[:]
     .chunk_by((left, right) => left == right)
     .map(chunk => run(chunk[0], chunk.length()))
@@ -174,10 +174,10 @@ fn build_run_tree(model : Array[String], degree_case : Int) -> OrderTree[Run] {
 ///|
 fn planned_insert(
   model : Array[String],
-  direction : Int,
-  step : Int,
-  seed : Int,
-) -> (Int, String) {
+  direction : Int32,
+  step : Int32,
+  seed : Int32,
+) -> (Int32, String) {
   if model.length() == 0 {
     return (0, "insert-\{step}-\{seed}")
   }
@@ -243,7 +243,7 @@ fn matches_run_model(tree : OrderTree[Run], model : Array[String]) -> Bool {
 ///|
 test "property: mergeable point mutations match a maximal RLE model" {
   @qc.quick_check_fn(
-    fn(ops : Array[Int]) -> Bool {
+    fn(ops : Array[Int32]) -> Bool {
       let generated_limit = if ops.length() > 40 { 40 } else { ops.length() }
       // These seeds force left-only, right-only, both-side, and neither-side
       // insertion classes even when QuickCheck generates an empty array.
@@ -299,7 +299,7 @@ test "property: mergeable point mutations match a maximal RLE model" {
 
 ///|
 test "generated operations cover mutation and topology risk classes" {
-  let samples : Array[Array[Int]] = @quickcheck.samples(512)
+  let samples : Array[Array[Int32]] = @quickcheck.samples(512)
   let seeds = samples.iter().flat_map(values => values.iter()).collect()
   let operations = [false, false, false]
   let merge_directions = [false, false, false, false]

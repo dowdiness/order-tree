@@ -3,7 +3,7 @@
 /// Returns a single-unit slice of the deleted element.
 pub fn[T : @btree.BTreeElem] OrderTree::delete_at(
   self : OrderTree[T],
-  pos : Int,
+  pos : Int32,
 ) -> T? {
   let deleted = self.tree.mutate_for_delete(pos, fn(ctx) {
     compute_delete_splice(ctx)

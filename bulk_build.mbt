@@ -4,7 +4,7 @@
 /// then builds bottom-up.
 pub fn[T : @rle.Spanning + @rle.Mergeable] OrderTree::from_array(
   items : Array[T],
-  min_degree? : Int,
+  min_degree? : Int32,
 ) -> OrderTree[T] {
   let t = match min_degree {
     Some(d) => if d < 2 { 2 } else { d }
