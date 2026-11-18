@@ -37,13 +37,11 @@ impl @rle.Sliceable for Run with fn slice(
   self : Run,
   start~ : Int32,
   end~ : Int32,
-) -> Result[Run, @rle.RleError] {
+) -> Run raise @rle.RleError {
   if start < 0 || end < start || end > self.span {
-    return Err(
-      @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex),
-    )
+    raise @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex)
   }
-  Ok({ ch: self.ch, span: end - start, })
+  { ch: self.ch, span: end - start, }
 }
 
 ///|

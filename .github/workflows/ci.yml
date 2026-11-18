@@ -21,14 +21,14 @@ jobs:
         run: |
           moon version --all
           moon update
-          moon check --target all --fmt
+          moon check --target all --fmt --deny-warn
           moon info --frozen
           git diff --exit-code -- moon.mod pkg.generated.mbti
-          moon build --target all --frozen
-          moon build --target all --release --frozen
+          moon build --target all --deny-warn --frozen
+          moon build --target all --release --deny-warn --frozen
           moon test --target all --frozen
           moon test --target all --release --frozen
-          moon bench --target all --release --build-only --frozen
+          moon bench --target all --release --build-only --deny-warn --frozen
           moon doc --frozen
       - name: Validate distribution archive
         shell: bash
@@ -38,6 +38,6 @@ jobs:
           mkdir "$RUNNER_TEMP/extracted"
           unzip -q "$RUNNER_TEMP"/package/publish/*.zip -d "$RUNNER_TEMP/extracted"
           cd "$RUNNER_TEMP/extracted"
-          moon check --target all
-          moon build --target all --release --frozen
+          moon check --target all --deny-warn
+          moon build --target all --release --deny-warn --frozen
           moon doc --frozen
