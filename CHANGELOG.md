@@ -23,6 +23,9 @@
   and operation semantics are unchanged. Public method names and bounds remain
   unchanged from main. Earlier unreleased main changes already promote
   existing query traits, equality/debug methods, and the index setter.
+- Since published 0.1.2, the named index setter `op_set` has become
+  `set_index`. Replace `tree.op_set(pos, value)` with
+  `tree.set_index(pos, value)` or `tree[pos] = value`.
 - Use `@rle.Spanning::span(tree)` for explicit trait dispatch. Applications
   implementing rle traits must use the published rle 0.3.0 contract.
 - `Sliceable::slice` intentionally retains rle's `Result` contract. New
