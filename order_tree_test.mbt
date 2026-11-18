@@ -27,14 +27,11 @@ impl @rle.Mergeable for TItem with fn merge(_self, _other) -> TItem {
 }
 
 ///|
-impl @rle.Sliceable for TItem with fn slice(self, start~ : Int32, end~ : Int32) -> Result[
-  TItem,
-  @rle.RleError,
-] {
+impl @rle.Sliceable for TItem with fn slice(self, start~ : Int32, end~ : Int32) -> TItem raise @rle.RleError {
   if start == 0 && end == 1 {
-    Ok(self)
+    self
   } else {
-    Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
+    raise @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex)
   }
 }
 
@@ -558,14 +555,11 @@ impl @rle.Mergeable for MItem with fn merge(self, other) -> MItem {
 }
 
 ///|
-impl @rle.Sliceable for MItem with fn slice(self, start~ : Int32, end~ : Int32) -> Result[
-  MItem,
-  @rle.RleError,
-] {
+impl @rle.Sliceable for MItem with fn slice(self, start~ : Int32, end~ : Int32) -> MItem raise @rle.RleError {
   if start < 0 || end > self.count || start >= end {
-    Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
+    raise @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex)
   } else {
-    Ok({ start: self.start + start, count: end - start, })
+    { start: self.start + start, count: end - start, }
   }
 }
 

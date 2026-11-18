@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.0 — 2026-11-18
+
+### Breaking changes
+
+- Adopt published `dowdiness/btree@0.3.0` and `dowdiness/rle@0.4.0`.
+  Custom elements must implement `Sliceable::slice` as
+  `Self raise RleError` instead of `Result[Self, RleError]`: return successful
+  slices directly and raise the same errors instead of returning `Err`.
+- Continue targeting MoonBit compiler/core `0.10.21+06da1ed44`.
+
+### Changed
+
+- Update QuickCheck to published `0.15.1`; all direct and transitive dependency
+  requirements now agree.
+- Adapt the internal slice boundary to typed errors while preserving its
+  existing abort behavior and message. OrderTree method names, signatures,
+  bounds, mutation algorithms and allocation policy are unchanged.
+- Migrate test and benchmark fixtures without changing their accepted ranges,
+  produced elements or error variants.
+- Make root and extracted-distribution CI checks/builds warning-denied, while
+  retaining all four targets, both test modes, benchmark compilation and docs.
+  No new warning suppression or test reduction is introduced.
+
 ## 0.2.0 — 2026-11-18
 
 ### Changed

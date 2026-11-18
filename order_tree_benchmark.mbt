@@ -24,14 +24,11 @@ impl @rle.Mergeable for BItem with fn merge(_self, _other) -> BItem {
 }
 
 ///|
-impl @rle.Sliceable for BItem with fn slice(self, start~ : Int32, end~ : Int32) -> Result[
-  BItem,
-  @rle.RleError,
-] {
+impl @rle.Sliceable for BItem with fn slice(self, start~ : Int32, end~ : Int32) -> BItem raise @rle.RleError {
   if start == 0 && end == 1 {
-    Ok(self)
+    self
   } else {
-    Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
+    raise @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex)
   }
 }
 
@@ -249,14 +246,11 @@ impl @rle.Mergeable for BMItem with fn merge(self, other) -> BMItem {
 }
 
 ///|
-impl @rle.Sliceable for BMItem with fn slice(self, start~ : Int32, end~ : Int32) -> Result[
-  BMItem,
-  @rle.RleError,
-] {
+impl @rle.Sliceable for BMItem with fn slice(self, start~ : Int32, end~ : Int32) -> BMItem raise @rle.RleError {
   if start < 0 || end > self.count || start >= end {
-    Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
+    raise @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex)
   } else {
-    Ok({ start: self.start + start, count: end - start, })
+    { start: self.start + start, count: end - start, }
   }
 }
 

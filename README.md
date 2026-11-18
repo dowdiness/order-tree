@@ -2,12 +2,12 @@
 
 Position-indexed sequence for [MoonBit](https://www.moonbitlang.com/) with O(log n) lookup by index and O(log n) point mutations when boundary merges are bounded.
 
-Built on [`dowdiness/btree`](https://mooncakes.io/docs/dowdiness/btree@0.2.0) (a counted B+ tree). OrderTree adds a high-level API for common sequence operations — insert at position, delete at position, bulk construction from arrays, and operator overloads.
+Built on [`dowdiness/btree`](https://mooncakes.io/docs/dowdiness/btree@0.3.0) (a counted B+ tree). OrderTree adds a high-level API for common sequence operations — insert at position, delete at position, bulk construction from arrays, and operator overloads.
 
 ## Install
 
-Version 0.2.0 targets MoonBit compiler/core `0.10.21+06da1ed44`.
-Use published rle 0.3.0 and QuickCheck 0.15.0; no local overrides are needed.
+Version 0.3.0 targets MoonBit compiler/core `0.10.21+06da1ed44`.
+Use published btree 0.3.0, rle 0.4.0 and QuickCheck 0.15.1; no local overrides are needed.
 See [CHANGELOG.md](CHANGELOG.md) for the compiler and dependency migration.
 
 ```bash
@@ -87,7 +87,12 @@ Traits:
 - `@rle.Mergeable` — when adjacent elements can merge (RLE compression)
 - `@rle.Sliceable` — how to split an element at a position
 
-See [`dowdiness/rle`](https://mooncakes.io/docs/dowdiness/rle@0.3.0) for trait details.
+See [`dowdiness/rle`](https://mooncakes.io/docs/dowdiness/rle@0.4.0) for trait details.
+
+Custom elements must implement `Sliceable::slice(...) -> Self raise @rle.RleError`,
+not return a `Result`. Return successful slices directly and raise the same
+errors formerly returned as `Err`. OrderTree's public method signatures remain
+infallible; slicing failure at an internally navigated position still aborts.
 
 ## Defining Your Element Type
 
@@ -113,10 +118,13 @@ pub impl @rle.Spanning for E with span(_self) { 1 }
 pub impl @rle.Mergeable for E with can_merge(_a, _b) { false }
 pub impl @rle.Mergeable for E with merge(a, _b) { a }
 
-pub impl @rle.Sliceable for E with slice(self, start~, end~) {
-  let _ = start
-  let _ = end
-  Ok(self)
+pub impl @rle.Sliceable for E with fn slice(
+  self, start~ : Int32, end~ : Int32,
+) -> E raise @rle.RleError {
+  if start != 0 || end != 1 {
+    raise @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex)
+  }
+  self
 }
 
 // BTreeElem is an empty super-trait. MoonBit emits warning [0027]
@@ -154,18 +162,18 @@ CI pins compiler and core to `0.10.21+06da1ed44`. Run:
 
 ```bash
 moon update
-moon check --target all --fmt
+moon check --target all --fmt --deny-warn
 moon info --frozen
-moon build --target all --frozen
-moon build --target all --release --frozen
+moon build --target all --deny-warn --frozen
+moon build --target all --release --deny-warn --frozen
 moon test --target all --frozen
 moon test --target all --release --frozen
-moon bench --target all --release --build-only --frozen
+moon bench --target all --release --build-only --deny-warn --frozen
 moon doc --frozen
 moon package --list --frozen
 ```
 
-CI also extracts the distribution ZIP and checks, builds, and generates docs
-from it. Compiler migration warnings for rle's required `Result`-returning
-`Sliceable` contract remain visible. `--deny-warn` fails on these warnings;
-they are not suppressed or represented as a clean strict check.
+CI also extracts the distribution ZIP and runs warning-denied checks/builds
+and generates docs from it. The rle 0.4.0 typed-raise migration removes the
+former `Result`-returning `Sliceable` implementations; no new warning
+suppression or reduced test matrix is used.

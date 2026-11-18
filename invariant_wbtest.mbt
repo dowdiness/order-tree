@@ -26,14 +26,11 @@ impl @rle.Mergeable for TI with fn merge(_self, _other) -> TI {
 }
 
 ///|
-impl @rle.Sliceable for TI with fn slice(self, start~ : Int32, end~ : Int32) -> Result[
-  TI,
-  @rle.RleError,
-] {
+impl @rle.Sliceable for TI with fn slice(self, start~ : Int32, end~ : Int32) -> TI raise @rle.RleError {
   if start == 0 && end == 1 {
-    Ok(self)
+    self
   } else {
-    Err(@rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex))
+    raise @rle.RleError::InvalidSlice(reason=@rle.SliceError::InvalidIndex)
   }
 }
 
